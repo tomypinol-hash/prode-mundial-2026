@@ -3,18 +3,18 @@ import { supabase } from './supabase'
 
 // ── Equipos ──────────────────────────────────────────────────
 const GROUPS = [
-  {name:'A',teams:[{f:'AR',n:'Argentina'},{f:'EC',n:'Ecuador'},{f:'CL',n:'Chile'},{f:'CA',n:'Canada'}]},
-  {name:'B',teams:[{f:'FR',n:'Francia'},{f:'UY',n:'Uruguay'},{f:'TZ',n:'Tanzania'},{f:'US',n:'EE.UU.'}]},
-  {name:'C',teams:[{f:'BR',n:'Brasil'},{f:'SE',n:'Suecia'},{f:'CM',n:'Camerun'},{f:'MX',n:'Mexico'}]},
-  {name:'D',teams:[{f:'GB',n:'Inglaterra'},{f:'AU',n:'Australia'},{f:'BE',n:'Belgica'},{f:'JP',n:'Japon'}]},
-  {name:'E',teams:[{f:'DE',n:'Alemania'},{f:'CO',n:'Colombia'},{f:'KR',n:'Corea del Sur'},{f:'ES',n:'Espana'}]},
-  {name:'F',teams:[{f:'PT',n:'Portugal'},{f:'MA',n:'Marruecos'},{f:'CR',n:'Costa Rica'},{f:'PE',n:'Peru'}]},
-  {name:'G',teams:[{f:'NL',n:'Paises Bajos'},{f:'CI',n:'Costa de Marfil'},{f:'SN',n:'Senegal'},{f:'VE',n:'Venezuela'}]},
-  {name:'H',teams:[{f:'PL',n:'Polonia'},{f:'SA',n:'Arabia Saudita'},{f:'RS',n:'Serbia'},{f:'CH',n:'Suiza'}]},
-  {name:'I',teams:[{f:'PY',n:'Paraguay'},{f:'AT',n:'Austria'},{f:'ZA',n:'Sudafrica'},{f:'NZ',n:'Nueva Zelanda'}]},
-  {name:'J',teams:[{f:'TR',n:'Turquia'},{f:'UA',n:'Ucrania'},{f:'GH',n:'Ghana'},{f:'QA',n:'Qatar'}]},
-  {name:'K',teams:[{f:'IR',n:'Iran'},{f:'SK',n:'Eslovaquia'},{f:'KE',n:'Kenia'},{f:'GR',n:'Grecia'}]},
-  {name:'L',teams:[{f:'HR',n:'Croacia'},{f:'BY',n:'Bielorrusia'},{f:'PA',n:'Panama'},{f:'EG',n:'Egipto'}]},
+  {name:'A',teams:[{f:'mx',n:'Mexico'},{f:'za',n:'Sudafrica'},{f:'kr',n:'Corea del Sur'},{f:'cz',n:'Chequia'}]},
+  {name:'B',teams:[{f:'ca',n:'Canada'},{f:'ch',n:'Suiza'},{f:'qa',n:'Qatar'},{f:'ba',n:'Bosnia'}]},
+  {name:'C',teams:[{f:'br',n:'Brasil'},{f:'ma',n:'Marruecos'},{f:'ht',n:'Haiti'},{f:'gb-sct',n:'Escocia'}]},
+  {name:'D',teams:[{f:'us',n:'EE.UU.'},{f:'py',n:'Paraguay'},{f:'au',n:'Australia'},{f:'tr',n:'Turquia'}]},
+  {name:'E',teams:[{f:'de',n:'Alemania'},{f:'ec',n:'Ecuador'},{f:'ci',n:'Costa de Marfil'},{f:'cw',n:'Curazao'}]},
+  {name:'F',teams:[{f:'nl',n:'Paises Bajos'},{f:'jp',n:'Japon'},{f:'tn',n:'Tunez'},{f:'se',n:'Suecia'}]},
+  {name:'G',teams:[{f:'be',n:'Belgica'},{f:'ir',n:'Iran'},{f:'eg',n:'Egipto'},{f:'nz',n:'Nueva Zelanda'}]},
+  {name:'H',teams:[{f:'es',n:'Espana'},{f:'uy',n:'Uruguay'},{f:'sa',n:'Arabia Saudita'},{f:'cv',n:'Cabo Verde'}]},
+  {name:'I',teams:[{f:'fr',n:'Francia'},{f:'sn',n:'Senegal'},{f:'no',n:'Noruega'},{f:'iq',n:'Irak'}]},
+  {name:'J',teams:[{f:'ar',n:'Argentina'},{f:'dz',n:'Argelia'},{f:'at',n:'Austria'},{f:'jo',n:'Jordania'}]},
+  {name:'K',teams:[{f:'pt',n:'Portugal'},{f:'co',n:'Colombia'},{f:'uz',n:'Uzbekistan'},{f:'cd',n:'RD Congo'}]},
+  {name:'L',teams:[{f:'gb-eng',n:'Inglaterra'},{f:'hr',n:'Croacia'},{f:'pa',n:'Panama'},{f:'gh',n:'Ghana'}]},
 ]
 
 // Partidos de grupos con fecha/hora real (UTC-3 Argentina)
