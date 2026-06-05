@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
+// ── Equipos ──────────────────────────────────────────────────
 const GROUPS = [
   {name:'A',teams:[{f:'AR',n:'Argentina'},{f:'EC',n:'Ecuador'},{f:'CL',n:'Chile'},{f:'CA',n:'Canada'}]},
   {name:'B',teams:[{f:'FR',n:'Francia'},{f:'UY',n:'Uruguay'},{f:'TZ',n:'Tanzania'},{f:'US',n:'EE.UU.'}]},
   {name:'C',teams:[{f:'BR',n:'Brasil'},{f:'SE',n:'Suecia'},{f:'CM',n:'Camerun'},{f:'MX',n:'Mexico'}]},
-  {name:'D',teams:[{f:'GB-ENG',n:'Inglaterra'},{f:'AU',n:'Australia'},{f:'BE',n:'Belgica'},{f:'JP',n:'Japon'}]},
+  {name:'D',teams:[{f:'GB',n:'Inglaterra'},{f:'AU',n:'Australia'},{f:'BE',n:'Belgica'},{f:'JP',n:'Japon'}]},
   {name:'E',teams:[{f:'DE',n:'Alemania'},{f:'CO',n:'Colombia'},{f:'KR',n:'Corea del Sur'},{f:'ES',n:'Espana'}]},
   {name:'F',teams:[{f:'PT',n:'Portugal'},{f:'MA',n:'Marruecos'},{f:'CR',n:'Costa Rica'},{f:'PE',n:'Peru'}]},
   {name:'G',teams:[{f:'NL',n:'Paises Bajos'},{f:'CI',n:'Costa de Marfil'},{f:'SN',n:'Senegal'},{f:'VE',n:'Venezuela'}]},
@@ -16,83 +17,228 @@ const GROUPS = [
   {name:'L',teams:[{f:'HR',n:'Croacia'},{f:'BY',n:'Bielorrusia'},{f:'PA',n:'Panama'},{f:'EG',n:'Egipto'}]},
 ]
 
-function flag(code) {
-  return `https://flagcdn.com/24x18/${code.toLowerCase().replace('gb-eng','gb')}.png`
+// Partidos de grupos con fecha/hora real (UTC-3 Argentina)
+// Cada partido: id, grupo, local, visitante, fecha
+const GROUP_MATCHES = [
+  // Grupo A
+  {id:'gA1',g:'A',a:0,b:1,date:new Date('2026-06-11T16:00:00-03:00')},
+  {id:'gA2',g:'A',a:2,b:3,date:new Date('2026-06-11T19:00:00-03:00')},
+  {id:'gA3',g:'A',a:0,b:2,date:new Date('2026-06-15T16:00:00-03:00')},
+  {id:'gA4',g:'A',a:1,b:3,date:new Date('2026-06-15T19:00:00-03:00')},
+  {id:'gA5',g:'A',a:0,b:3,date:new Date('2026-06-19T19:00:00-03:00')},
+  {id:'gA6',g:'A',a:1,b:2,date:new Date('2026-06-19T19:00:00-03:00')},
+  // Grupo B
+  {id:'gB1',g:'B',a:0,b:1,date:new Date('2026-06-12T13:00:00-03:00')},
+  {id:'gB2',g:'B',a:2,b:3,date:new Date('2026-06-12T16:00:00-03:00')},
+  {id:'gB3',g:'B',a:0,b:2,date:new Date('2026-06-16T13:00:00-03:00')},
+  {id:'gB4',g:'B',a:1,b:3,date:new Date('2026-06-16T16:00:00-03:00')},
+  {id:'gB5',g:'B',a:0,b:3,date:new Date('2026-06-20T19:00:00-03:00')},
+  {id:'gB6',g:'B',a:1,b:2,date:new Date('2026-06-20T19:00:00-03:00')},
+  // Grupo C
+  {id:'gC1',g:'C',a:0,b:1,date:new Date('2026-06-12T19:00:00-03:00')},
+  {id:'gC2',g:'C',a:2,b:3,date:new Date('2026-06-13T13:00:00-03:00')},
+  {id:'gC3',g:'C',a:0,b:2,date:new Date('2026-06-17T13:00:00-03:00')},
+  {id:'gC4',g:'C',a:1,b:3,date:new Date('2026-06-17T16:00:00-03:00')},
+  {id:'gC5',g:'C',a:0,b:3,date:new Date('2026-06-21T19:00:00-03:00')},
+  {id:'gC6',g:'C',a:1,b:2,date:new Date('2026-06-21T19:00:00-03:00')},
+  // Grupos D-L simplificados con fechas aproximadas
+  {id:'gD1',g:'D',a:0,b:1,date:new Date('2026-06-13T16:00:00-03:00')},
+  {id:'gD2',g:'D',a:2,b:3,date:new Date('2026-06-13T19:00:00-03:00')},
+  {id:'gD3',g:'D',a:0,b:2,date:new Date('2026-06-17T19:00:00-03:00')},
+  {id:'gD4',g:'D',a:1,b:3,date:new Date('2026-06-18T13:00:00-03:00')},
+  {id:'gD5',g:'D',a:0,b:3,date:new Date('2026-06-22T19:00:00-03:00')},
+  {id:'gD6',g:'D',a:1,b:2,date:new Date('2026-06-22T19:00:00-03:00')},
+  {id:'gE1',g:'E',a:0,b:1,date:new Date('2026-06-14T13:00:00-03:00')},
+  {id:'gE2',g:'E',a:2,b:3,date:new Date('2026-06-14T16:00:00-03:00')},
+  {id:'gE3',g:'E',a:0,b:2,date:new Date('2026-06-18T16:00:00-03:00')},
+  {id:'gE4',g:'E',a:1,b:3,date:new Date('2026-06-18T19:00:00-03:00')},
+  {id:'gE5',g:'E',a:0,b:3,date:new Date('2026-06-23T19:00:00-03:00')},
+  {id:'gE6',g:'E',a:1,b:2,date:new Date('2026-06-23T19:00:00-03:00')},
+  {id:'gF1',g:'F',a:0,b:1,date:new Date('2026-06-14T19:00:00-03:00')},
+  {id:'gF2',g:'F',a:2,b:3,date:new Date('2026-06-15T13:00:00-03:00')},
+  {id:'gF3',g:'F',a:0,b:2,date:new Date('2026-06-19T13:00:00-03:00')},
+  {id:'gF4',g:'F',a:1,b:3,date:new Date('2026-06-19T16:00:00-03:00')},
+  {id:'gF5',g:'F',a:0,b:3,date:new Date('2026-06-24T19:00:00-03:00')},
+  {id:'gF6',g:'F',a:1,b:2,date:new Date('2026-06-24T19:00:00-03:00')},
+  {id:'gG1',g:'G',a:0,b:1,date:new Date('2026-06-20T13:00:00-03:00')},
+  {id:'gG2',g:'G',a:2,b:3,date:new Date('2026-06-20T16:00:00-03:00')},
+  {id:'gG3',g:'G',a:0,b:2,date:new Date('2026-06-24T13:00:00-03:00')},
+  {id:'gG4',g:'G',a:1,b:3,date:new Date('2026-06-24T16:00:00-03:00')},
+  {id:'gG5',g:'G',a:0,b:3,date:new Date('2026-06-28T19:00:00-03:00')},
+  {id:'gG6',g:'G',a:1,b:2,date:new Date('2026-06-28T19:00:00-03:00')},
+  {id:'gH1',g:'H',a:0,b:1,date:new Date('2026-06-21T13:00:00-03:00')},
+  {id:'gH2',g:'H',a:2,b:3,date:new Date('2026-06-21T16:00:00-03:00')},
+  {id:'gH3',g:'H',a:0,b:2,date:new Date('2026-06-25T13:00:00-03:00')},
+  {id:'gH4',g:'H',a:1,b:3,date:new Date('2026-06-25T16:00:00-03:00')},
+  {id:'gH5',g:'H',a:0,b:3,date:new Date('2026-06-29T19:00:00-03:00')},
+  {id:'gH6',g:'H',a:1,b:2,date:new Date('2026-06-29T19:00:00-03:00')},
+  {id:'gI1',g:'I',a:0,b:1,date:new Date('2026-06-22T13:00:00-03:00')},
+  {id:'gI2',g:'I',a:2,b:3,date:new Date('2026-06-22T16:00:00-03:00')},
+  {id:'gI3',g:'I',a:0,b:2,date:new Date('2026-06-26T13:00:00-03:00')},
+  {id:'gI4',g:'I',a:1,b:3,date:new Date('2026-06-26T16:00:00-03:00')},
+  {id:'gI5',g:'I',a:0,b:3,date:new Date('2026-06-30T19:00:00-03:00')},
+  {id:'gI6',g:'I',a:1,b:2,date:new Date('2026-06-30T19:00:00-03:00')},
+  {id:'gJ1',g:'J',a:0,b:1,date:new Date('2026-06-23T13:00:00-03:00')},
+  {id:'gJ2',g:'J',a:2,b:3,date:new Date('2026-06-23T16:00:00-03:00')},
+  {id:'gJ3',g:'J',a:0,b:2,date:new Date('2026-06-27T13:00:00-03:00')},
+  {id:'gJ4',g:'J',a:1,b:3,date:new Date('2026-06-27T16:00:00-03:00')},
+  {id:'gJ5',g:'J',a:0,b:3,date:new Date('2026-07-01T19:00:00-03:00')},
+  {id:'gJ6',g:'J',a:1,b:2,date:new Date('2026-07-01T19:00:00-03:00')},
+  {id:'gK1',g:'K',a:0,b:1,date:new Date('2026-06-25T19:00:00-03:00')},
+  {id:'gK2',g:'K',a:2,b:3,date:new Date('2026-06-26T19:00:00-03:00')},
+  {id:'gK3',g:'K',a:0,b:2,date:new Date('2026-06-29T13:00:00-03:00')},
+  {id:'gK4',g:'K',a:1,b:3,date:new Date('2026-06-29T16:00:00-03:00')},
+  {id:'gK5',g:'K',a:0,b:3,date:new Date('2026-07-02T19:00:00-03:00')},
+  {id:'gK6',g:'K',a:1,b:2,date:new Date('2026-07-02T19:00:00-03:00')},
+  {id:'gL1',g:'L',a:0,b:1,date:new Date('2026-06-27T19:00:00-03:00')},
+  {id:'gL2',g:'L',a:2,b:3,date:new Date('2026-06-28T13:00:00-03:00')},
+  {id:'gL3',g:'L',a:0,b:2,date:new Date('2026-07-01T13:00:00-03:00')},
+  {id:'gL4',g:'L',a:1,b:3,date:new Date('2026-07-01T16:00:00-03:00')},
+  {id:'gL5',g:'L',a:0,b:3,date:new Date('2026-07-03T19:00:00-03:00')},
+  {id:'gL6',g:'L',a:1,b:2,date:new Date('2026-07-03T19:00:00-03:00')},
+]
+
+const KNOCKOUT_DATES = {
+  r32: new Date('2026-07-05T16:00:00-03:00'),
+  r16: new Date('2026-07-09T16:00:00-03:00'),
+  qf:  new Date('2026-07-12T16:00:00-03:00'),
+  sf:  new Date('2026-07-15T16:00:00-03:00'),
+  final: new Date('2026-07-19T16:00:00-03:00'),
 }
 
-const DEADLINES = {
-  groups: new Date('2026-06-10T15:00:00-03:00'),
-  r32:    new Date('2026-07-01T15:00:00-03:00'),
-  r16:    new Date('2026-07-05T15:00:00-03:00'),
-  qf:     new Date('2026-07-10T15:00:00-03:00'),
-  sf:     new Date('2026-07-14T15:00:00-03:00'),
-  final:  new Date('2026-07-18T15:00:00-03:00'),
+const LOCK_MINS = 20
+
+function isMatchLocked(date) {
+  return new Date() > new Date(date.getTime() - LOCK_MINS * 60000)
 }
 
-function isLocked(phase) { return new Date() > DEADLINES[phase] }
+function isRoundLocked(round) {
+  return new Date() > new Date(KNOCKOUT_DATES[round].getTime() - LOCK_MINS * 60000)
+}
 
-function timeLeft(phase) {
-  const diff = DEADLINES[phase] - new Date()
+function timeLeftStr(date) {
+  const diff = new Date(date.getTime() - LOCK_MINS * 60000) - new Date()
   if (diff <= 0) return null
   const d = Math.floor(diff / 86400000)
   const h = Math.floor((diff % 86400000) / 3600000)
   const m = Math.floor((diff % 3600000) / 60000)
-  if (d > 0) return d + 'd ' + h + 'h para el cierre'
-  if (h > 0) return h + 'h ' + m + 'm para el cierre'
-  return m + ' minutos para el cierre'
+  if (d > 0) return d + 'd ' + h + 'h'
+  if (h > 0) return h + 'h ' + m + 'm'
+  return m + ' min'
+}
+
+function flag(code) {
+  return 'https://flagcdn.com/24x18/' + code.toLowerCase() + '.png'
 }
 
 function emptyProde() {
-  return { groups: {}, r32: {}, r16: {}, qf: {}, sf: {}, third: {}, final: {} }
+  return { groups: {}, scores: {}, r32: {}, r16: {}, qf: {}, sf: {}, third: {}, final: {} }
 }
 
-function calcScore(prode) {
+// Puntos: 1 por ganador correcto, 2 por marcador exacto
+// Penales = empate en marcador normal
+function calcMatchPoints(pred, real) {
+  if (!pred || !real) return 0
+  var pa = parseInt(pred.a), pb = parseInt(pred.b)
+  var ra = parseInt(real.a), rb = parseInt(real.b)
+  if (isNaN(pa) || isNaN(pb) || isNaN(ra) || isNaN(rb)) return 0
+  // resultado exacto
+  if (pa === ra && pb === rb) return 2
+  // ganador correcto
+  var predWin = pa > pb ? 'a' : pa < pb ? 'b' : 'e'
+  var realWin = ra > rb ? 'a' : ra < rb ? 'b' : 'e'
+  if (predWin === realWin) return 1
+  return 0
+}
+
+function calcScore(prode, results) {
   if (!prode) return 0
   var pts = 0
-  pts += Object.keys(prode.groups || {}).length * 5
-  var rounds = [{k:'r32',p:10},{k:'r16',p:15},{k:'qf',p:20},{k:'sf',p:25}]
-  rounds.forEach(function(r) { pts += Object.keys(prode[r.k] || {}).length * r.p })
-  if (prode.third && prode.third.third) pts += 25
-  if (prode.final && prode.final.final_m) pts += 50
+  results = results || {}
+  // group matches
+  GROUP_MATCHES.forEach(function(m) {
+    var pred = prode.scores && prode.scores[m.id]
+    var real = results[m.id]
+    pts += calcMatchPoints(pred, real)
+  })
+  // knockouts: 1 pt ganador, 2 pt exacto, multiplicado por ronda
+  var rounds = ['r32','r16','qf','sf','final']
+  var mult = {r32:1, r16:2, qf:3, sf:4, final:5}
+  rounds.forEach(function(r) {
+    var rData = prode[r] || {}
+    Object.keys(rData).forEach(function(matchId) {
+      var pred = rData[matchId]
+      var real = results[matchId]
+      if (pred && real && pred.n === real.n) pts += mult[r]
+    })
+  })
   return pts
 }
 
-function getChampion(prode) {
-  if (!prode || !prode.final) return null
-  return prode.final.final_m || null
+function calcStats(prode, results) {
+  var gf = 0, ga = 0
+  results = results || {}
+  GROUP_MATCHES.forEach(function(m) {
+    var pred = prode.scores && prode.scores[m.id]
+    if (pred) {
+      var pa = parseInt(pred.a) || 0
+      var pb = parseInt(pred.b) || 0
+      gf += pa + pb
+    }
+    var real = results[m.id]
+    if (real) {
+      var ra = parseInt(real.a) || 0
+      var rb = parseInt(real.b) || 0
+      ga += ra + rb
+    }
+  })
+  return { gf: gf, ga: ga, diff: gf - ga }
 }
 
-var MEDAL = ['1ro', '2do', '3ro']
-var C = { red:'#C0392B', blue:'#1565C0', gold:'#F9A825', green:'#27ae60', border:'#e0e0e0' }
+var ADMIN = 'Tomy'
+var C = { red:'#C0392B', blue:'#1565C0', gold:'#F9A825', green:'#27ae60', border:'#e0e0e0', gray:'#888' }
 
-function styleTab(a) {
-  return { flex:1, padding:'9px 2px', border:'none', borderRadius:'8px 8px 0 0', cursor:'pointer', fontSize:'11px', fontWeight:500, background:a?C.blue:'#eee', color:a?'#fff':'#555' }
+function sBtn(col, extra) {
+  return Object.assign({ background:col||C.blue, color:'#fff', border:'none', borderRadius:'10px', padding:'10px 16px', cursor:'pointer', fontSize:'14px', fontWeight:500, width:'100%', marginTop:'8px' }, extra||{})
 }
-function styleTeamRow(sel) {
-  return { display:'flex', alignItems:'center', gap:'8px', padding:'7px 10px', cursor:'pointer', fontSize:'13px', borderBottom:'1px solid '+C.border, background:sel===1?'#fff8e1':sel===2?'#e8f5e9':'#fff', borderLeft:sel===1?'4px solid '+C.gold:sel===2?'4px solid '+C.green:'4px solid transparent' }
-}
-function styleMatchTeam(w) {
-  return { display:'flex', alignItems:'center', gap:'8px', padding:'7px 10px', cursor:'pointer', fontSize:'13px', borderBottom:'1px solid '+C.border, background:w?'#e3f0fb':'#fff', borderLeft:w?'4px solid '+C.blue:'4px solid transparent', fontWeight:w?600:400 }
+function sSmallBtn(col) {
+  return { background:col||C.blue, color:'#fff', border:'none', borderRadius:6, padding:'4px 10px', cursor:'pointer', fontSize:12 }
 }
 var sHeader = { background:'linear-gradient(135deg,#C0392B 0%,#1565C0 60%,#F9A825 100%)', padding:'16px', textAlign:'center', borderRadius:'14px', marginBottom:'8px', color:'#fff' }
 var sCard = { background:'#fff', border:'1px solid '+C.border, borderRadius:'10px', overflow:'hidden', marginBottom:'8px' }
-function sBtn(col) { return { background:col||C.blue, color:'#fff', border:'none', borderRadius:'10px', padding:'10px 20px', cursor:'pointer', fontSize:'14px', fontWeight:500, width:'100%', marginTop:'8px' } }
-var sInput = { width:'100%', padding:'12px 14px', fontSize:'18px', border:'2px solid '+C.blue, borderRadius:'12px', outline:'none', fontFamily:'inherit', textAlign:'center' }
-var sLock = { display:'inline-block', background:'#ffecb3', color:'#7b5800', borderRadius:'20px', padding:'2px 10px', fontSize:'11px' }
+var sInput = { width:'100%', padding:'10px 12px', fontSize:'16px', border:'2px solid '+C.blue, borderRadius:'10px', outline:'none', fontFamily:'inherit' }
+var sLock = { display:'inline-block', background:'#ffecb3', color:'#7b5800', borderRadius:'20px', padding:'2px 8px', fontSize:'11px' }
+function sTab(a) { return { flex:1, padding:'8px 2px', border:'none', borderRadius:'8px 8px 0 0', cursor:'pointer', fontSize:'11px', fontWeight:500, background:a?C.blue:'#eee', color:a?'#fff':'#555' } }
+function sTeamRow(sel) {
+  return { display:'flex', alignItems:'center', gap:'6px', padding:'6px 8px', cursor:'pointer', fontSize:'12px', borderBottom:'1px solid '+C.border, background:sel===1?'#fff8e1':sel===2?'#e8f5e9':'#fff', borderLeft:sel===1?'3px solid '+C.gold:sel===2?'3px solid '+C.green:'3px solid transparent' }
+}
+function sMatchTeam(w) {
+  return { display:'flex', alignItems:'center', gap:'8px', padding:'7px 10px', cursor:'pointer', fontSize:'13px', borderBottom:'1px solid '+C.border, background:w?'#e3f0fb':'#fff', borderLeft:w?'4px solid '+C.blue:'4px solid transparent', fontWeight:w?600:400 }
+}
 
+// ── Supabase ──────────────────────────────────────────────────
 async function dbGetAll() {
-  var res = await supabase.from('prodes').select('*').order('updated_at', { ascending: false })
+  var res = await supabase.from('prodes').select('*').order('updated_at',{ascending:false})
   if (res.error) { console.error(res.error); return [] }
   return res.data
 }
-async function dbUpsert(playerName, prode) {
-  var res = await supabase.from('prodes').upsert({ player_name: playerName, prode: prode, updated_at: new Date().toISOString() }, { onConflict: 'player_name' })
+async function dbUpsert(name, prode) {
+  var res = await supabase.from('prodes').upsert({player_name:name,prode:prode,updated_at:new Date().toISOString()},{onConflict:'player_name'})
   if (res.error) console.error(res.error)
 }
-async function dbGetOne(playerName) {
-  var res = await supabase.from('prodes').select('*').eq('player_name', playerName).single()
+async function dbGetOne(name) {
+  var res = await supabase.from('prodes').select('*').eq('player_name',name).single()
   if (res.error) return null
   return res.data
+}
+async function dbGetResults() {
+  var res = await supabase.from('results').select('*').eq('id','main').single()
+  if (res.error) return {}
+  return res.data ? res.data.data : {}
+}
+async function dbSaveResults(data) {
+  var res = await supabase.from('results').upsert({id:'main',data:data,updated_at:new Date().toISOString()},{onConflict:'id'})
+  if (res.error) console.error(res.error)
 }
 
 var R32_PAIRS = [
@@ -104,62 +250,82 @@ var R32_PAIRS = [
   [{g:'J',p:1},{g:'I',p:2}],[{g:'L',p:1},{g:'K',p:2}],
   [null,null],[null,null],[null,null],[null,null],
 ]
+var ROUND_COUNTS = {r32:16,r16:8,qf:4,sf:2}
+var ROUND_LABELS = {r32:'Partido',r16:'Octavo',qf:'Cuarto',sf:'Semifinal'}
 
 function getGroupQualified(prode, gName, pos) {
-  var g = GROUPS.find(function(x) { return x.name === gName })
+  var g = GROUPS.find(function(x){return x.name===gName})
   if (!g) return null
-  var idx = g.teams.findIndex(function(_, i) { return prode.groups[gName+'_'+i] === pos })
-  return idx < 0 ? null : g.teams[idx]
+  var idx = g.teams.findIndex(function(_,i){return prode.groups[gName+'_'+i]===pos})
+  return idx<0?null:g.teams[idx]
 }
-
 function getMatchTeams(prode, round, idx) {
-  if (round === 'r32') {
-    var pair = R32_PAIRS[idx]
-    if (!pair[0]) return [null, null]
-    return [getGroupQualified(prode, pair[0].g, pair[0].p), getGroupQualified(prode, pair[1].g, pair[1].p)]
+  if (round==='r32') {
+    var pair=R32_PAIRS[idx]
+    if(!pair[0])return[null,null]
+    return[getGroupQualified(prode,pair[0].g,pair[0].p),getGroupQualified(prode,pair[1].g,pair[1].p)]
   }
-  if (round === 'r16') return [prode.r32['r32_'+(idx*2)]||null, prode.r32['r32_'+(idx*2+1)]||null]
-  if (round === 'qf')  return [prode.r16['r16_'+(idx*2)]||null, prode.r16['r16_'+(idx*2+1)]||null]
-  if (round === 'sf')  return [prode.qf['qf_'+(idx*2)]||null,  prode.qf['qf_'+(idx*2+1)]||null]
-  return [null, null]
+  if(round==='r16')return[prode.r32['r32_'+(idx*2)]||null,prode.r32['r32_'+(idx*2+1)]||null]
+  if(round==='qf')return[prode.r16['r16_'+(idx*2)]||null,prode.r16['r16_'+(idx*2+1)]||null]
+  if(round==='sf')return[prode.qf['qf_'+(idx*2)]||null,prode.qf['qf_'+(idx*2+1)]||null]
+  return[null,null]
 }
 
-var ROUND_COUNTS = {r32:16, r16:8, qf:4, sf:2}
-var ROUND_LABELS = {r32:'Partido', r16:'Octavo', qf:'Cuarto', sf:'Semifinal'}
-
+// ══════════════════════════════════════════════════════════════
 export default function App() {
   var [screen, setScreen] = useState('home')
   var [currentPlayer, setPlayer] = useState(null)
   var [prode, setProdeState] = useState(emptyProde())
   var [nameInput, setNameInput] = useState('')
+  var [passInput, setPassInput] = useState('')
   var [players, setPlayers] = useState([])
+  var [results, setResults] = useState({})
   var [loading, setLoading] = useState(false)
-  var [activeTab, setActiveTab] = useState('groups')
   var [saving, setSaving] = useState(false)
+  var [activeTab, setActiveTab] = useState('groups')
+  var [error, setError] = useState('')
 
-  useEffect(function() { fetchPlayers() }, [])
+  useEffect(function(){
+    fetchAll()
+  },[])
 
-  async function fetchPlayers() {
+  async function fetchAll() {
     setLoading(true)
     var rows = await dbGetAll()
+    var res = await dbGetResults()
     setPlayers(rows)
+    setResults(res)
     setLoading(false)
   }
 
   async function handleJoin() {
     var name = nameInput.trim()
-    if (!name) return
+    var pass = passInput.trim()
+    if (!name) { setError('Escribi tu nombre'); return }
+    if (!pass) { setError('Escribi una contrasena'); return }
+    setError('')
     setLoading(true)
     var row = await dbGetOne(name)
     if (!row) {
-      await dbUpsert(name, emptyProde())
+      // nuevo jugador
+      var newProde = emptyProde()
+      newProde._pass = pass
+      await dbUpsert(name, newProde)
       row = await dbGetOne(name)
+    } else {
+      // jugador existente: verificar contrasena
+      if (row.prode._pass !== pass) {
+        setError('Contrasena incorrecta')
+        setLoading(false)
+        return
+      }
     }
     setPlayer(name)
-    setProdeState(row ? row.prode : emptyProde())
-    await fetchPlayers()
-    setScreen('prode')
+    setProdeState(row.prode)
+    await fetchAll()
+    setScreen(name===ADMIN?'admin':'prode')
     setNameInput('')
+    setPassInput('')
     setActiveTab('groups')
     setLoading(false)
   }
@@ -169,211 +335,253 @@ export default function App() {
     setSaving(true)
     await dbUpsert(currentPlayer, newProde)
     setSaving(false)
-    fetchPlayers()
+    fetchAll()
   }
 
-  if (screen === 'ranking') {
-    var ranked = [...players].sort(function(a,b){ return calcScore(b.prode)-calcScore(a.prode) })
+  async function saveResults(newResults) {
+    setResults(newResults)
+    await dbSaveResults(newResults)
+    fetchAll()
+  }
+
+  // ── HOME ──
+  if (screen==='home') {
+    var sorted = [...players].sort(function(a,b){return calcScore(b.prode,results)-calcScore(a.prode,results)})
     return (
       <div style={{maxWidth:480,margin:'0 auto',padding:'12px 8px'}}>
         <div style={sHeader}>
-          <div style={{fontSize:20,fontWeight:600}}>Ranking General</div>
-          <div style={{fontSize:12,opacity:.9,marginTop:2}}>Prode Mundial 2026</div>
+          <div style={{fontSize:38,marginBottom:4}}>&#127942;</div>
+          <div style={{fontSize:22,fontWeight:600}}>PRODE MUNDIAL 2026</div>
+          <div style={{fontSize:13,opacity:.9,marginTop:4}}>USA - Mexico - Canada</div>
         </div>
-        <button onClick={fetchPlayers} style={sBtn(C.blue)}>Actualizar ranking</button>
-        <div style={{...sCard,marginTop:8}}>
-          {ranked.length===0 && <div style={{padding:20,textAlign:'center',color:'#888'}}>Nadie anotado todavia.</div>}
-          {ranked.map(function(p,i){
-            var sc=calcScore(p.prode), ch=getChampion(p.prode)
-            return (
-              <div key={p.player_name} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:i===0?'#fff8e1':i===1?'#f3f3f3':'#fff',borderBottom:'1px solid '+C.border,fontSize:14}}>
-                <span style={{fontSize:18,minWidth:28}}>{MEDAL[i]||((i+1)+'.')}</span>
-                <div style={{flex:1}}>
-                  <div style={{fontWeight:600}}>{p.player_name}</div>
-                  <div style={{fontSize:12,color:'#888'}}>{ch?'Campeon: '+ch.n:'Sin campeon aun'}</div>
-                </div>
-                <div style={{textAlign:'right'}}>
-                  <div style={{fontSize:20,fontWeight:700,color:C.blue}}>{sc}</div>
-                  <div style={{fontSize:11,color:'#888'}}>puntos</div>
-                </div>
-              </div>
-            )
-          })}
+
+        <div style={{...sCard,padding:'20px 16px',marginTop:10}}>
+          <div style={{fontSize:15,fontWeight:500,color:C.blue,marginBottom:12,textAlign:'center'}}>Entrar al prode</div>
+          <input style={{...sInput,marginBottom:8}} placeholder="Tu nombre" value={nameInput} onChange={function(e){setNameInput(e.target.value)}} />
+          <input style={sInput} placeholder="Tu contrasena" type="password" value={passInput} onChange={function(e){setPassInput(e.target.value)}} onKeyDown={function(e){if(e.key==='Enter')handleJoin()}} />
+          {error && <div style={{color:C.red,fontSize:13,marginTop:6,textAlign:'center'}}>{error}</div>}
+          <button style={sBtn()} onClick={handleJoin} disabled={loading}>{loading?'Cargando...':'Entrar al prode!'}</button>
         </div>
-        <button style={sBtn(C.red)} onClick={function(){setScreen('home')}}>Volver</button>
+
+        {sorted.length>0 && (
+          <div style={{...sCard,padding:'14px 16px',marginTop:8}}>
+            <div style={{fontSize:14,fontWeight:500,color:C.red,marginBottom:10}}>Ranking ({sorted.length} jugadores)</div>
+            {sorted.map(function(p,i){
+              var sc=calcScore(p.prode,results)
+              var ch=p.prode.final&&p.prode.final.final_m
+              return(
+                <div key={p.player_name} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid '+C.border,fontSize:13}}>
+                  <span style={{fontSize:16,minWidth:26}}>{i===0?'&#127941;':i===1?'&#129352;':i===2?'&#129353;':(i+1)+'.'}</span>
+                  <div style={{flex:1}}>
+                    <span style={{fontWeight:600}}>{p.player_name}</span>
+                    {ch&&<span style={{fontSize:11,color:C.gray,marginLeft:6}}>{ch.n}</span>}
+                  </div>
+                  <span style={{fontWeight:700,color:C.blue,fontSize:14}}>{sc} pts</span>
+                  <button onClick={async function(){
+                    setLoading(true)
+                    var row=await dbGetOne(p.player_name)
+                    setPlayer(p.player_name)
+                    setProdeState(row?row.prode:emptyProde())
+                    setScreen('view')
+                    setActiveTab('groups')
+                    setLoading(false)
+                  }} style={sSmallBtn(C.blue)}>Ver</button>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     )
   }
 
-  if (screen === 'prode') {
-    var tabs = [{id:'groups',label:'Grupos'},{id:'r32',label:'16avos'},{id:'r16',label:'Octavos'},{id:'qf',label:'Cuartos'},{id:'sf',label:'Semis'},{id:'final',label:'Final'}]
-    var champ = getChampion(prode)
+  // ── VIEW (solo lectura) ──
+  if (screen==='view') {
     return (
       <div style={{maxWidth:480,margin:'0 auto',padding:'8px'}}>
         <div style={sHeader}>
-          <div style={{fontSize:11,opacity:.8,marginBottom:2}}>Prode de</div>
+          <div style={{fontSize:11,opacity:.8}}>Prode de</div>
           <div style={{fontSize:20,fontWeight:600}}>{currentPlayer}</div>
-          {saving && <div style={{fontSize:11,opacity:.8,marginTop:4}}>Guardando...</div>}
           <div style={{display:'flex',gap:8,justifyContent:'center',marginTop:8}}>
-            <button onClick={function(){setScreen('home');fetchPlayers()}} style={{background:'rgba(255,255,255,.2)',color:'#fff',border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontSize:12}}>Inicio</button>
-            <button onClick={function(){setScreen('ranking');fetchPlayers()}} style={{background:'rgba(255,255,255,.2)',color:'#fff',border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontSize:12}}>Ranking</button>
+            <button onClick={function(){setScreen('home')}} style={{background:'rgba(255,255,255,.2)',color:'#fff',border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontSize:12}}>Volver</button>
           </div>
         </div>
-        {champ && (
-          <div style={{textAlign:'center',padding:'12px',background:'linear-gradient(135deg,rgba(192,57,43,.1),rgba(21,101,192,.1))',borderRadius:12,marginBottom:8,border:'2px solid '+C.gold}}>
-            <img src={flag(champ.f)} alt={champ.n} style={{marginRight:8,verticalAlign:'middle'}} />
-            <span style={{fontSize:15,fontWeight:700,color:C.blue}}>{champ.n} - CAMPEON!</span>
-          </div>
-        )}
-        <div style={{display:'flex',gap:2,marginTop:6}}>
-          {tabs.map(function(t){ return <button key={t.id} style={styleTab(activeTab===t.id)} onClick={function(){setActiveTab(t.id)}}>{t.label}</button> })}
-        </div>
-        <div style={{background:'#fff',border:'1px solid '+C.border,borderRadius:'0 0 10px 10px',padding:'10px 8px'}}>
-          {activeTab==='groups' && <GroupsTab prode={prode} setProde={saveProde} />}
-          {activeTab==='r32' && <KnockoutTab round='r32' prode={prode} setProde={saveProde} />}
-          {activeTab==='r16' && <KnockoutTab round='r16' prode={prode} setProde={saveProde} />}
-          {activeTab==='qf' && <KnockoutTab round='qf' prode={prode} setProde={saveProde} />}
-          {activeTab==='sf' && <KnockoutTab round='sf' prode={prode} setProde={saveProde} />}
-          {activeTab==='final' && <FinalTab prode={prode} setProde={saveProde} />}
-        </div>
-        <div style={{textAlign:'center',marginTop:10,padding:'10px',background:'#f9f9f9',borderRadius:10}}>
-          <div style={{fontSize:13,color:'#888'}}>Tu puntaje actual</div>
-          <div style={{fontSize:28,fontWeight:700,color:C.blue}}>{calcScore(prode)} pts</div>
-        </div>
+        <ProdeView prode={prode} results={results} readonly={true} activeTab={activeTab} setActiveTab={setActiveTab} />
+        <ScoreSummary prode={prode} results={results} />
       </div>
     )
   }
 
+  // ── ADMIN ──
+  if (screen==='admin') {
+    return <AdminPanel players={players} results={results} saveResults={saveResults} setScreen={setScreen} fetchAll={fetchAll} />
+  }
+
+  // ── PRODE (editable) ──
+  var champ = prode.final&&prode.final.final_m
   return (
-    <div style={{maxWidth:480,margin:'0 auto',padding:'12px 8px'}}>
+    <div style={{maxWidth:480,margin:'0 auto',padding:'8px'}}>
       <div style={sHeader}>
-        <div style={{fontSize:40,marginBottom:4}}>&#127942;</div>
-        <div style={{fontSize:22,fontWeight:600,letterSpacing:1}}>PRODE MUNDIAL 2026</div>
-        <div style={{fontSize:13,opacity:.9,marginTop:4}}>USA - Mexico - Canada</div>
+        <div style={{fontSize:11,opacity:.8}}>Prode de</div>
+        <div style={{fontSize:20,fontWeight:600}}>{currentPlayer}</div>
+        {saving&&<div style={{fontSize:11,opacity:.8,marginTop:2}}>Guardando...</div>}
+        <div style={{display:'flex',gap:8,justifyContent:'center',marginTop:8}}>
+          <button onClick={function(){setScreen('home');fetchAll()}} style={{background:'rgba(255,255,255,.2)',color:'#fff',border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontSize:12}}>Inicio</button>
+        </div>
       </div>
-      <div style={{...sCard,padding:'20px 16px',marginTop:12}}>
-        <div style={{fontSize:16,fontWeight:500,color:C.blue,marginBottom:12,textAlign:'center'}}>Como te llamas?</div>
-        <input style={sInput} placeholder="Escribi tu nombre..." value={nameInput}
-          onChange={function(e){setNameInput(e.target.value)}}
-          onKeyDown={function(e){if(e.key==='Enter')handleJoin()}} autoFocus />
-        <button style={sBtn()} onClick={handleJoin} disabled={loading}>
-          {loading ? 'Cargando...' : 'Entrar al prode!'}
-        </button>
-      </div>
-      {players.length > 0 && (
-        <div style={{...sCard,padding:'14px 16px',marginTop:8}}>
-          <div style={{fontSize:14,fontWeight:500,color:C.red,marginBottom:10}}>Jugadores anotados ({players.length})</div>
-          {[...players].sort(function(a,b){return calcScore(b.prode)-calcScore(a.prode)}).map(function(p,i){
-            return (
-              <div key={p.player_name} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid '+C.border,fontSize:14}}>
-                <span style={{fontSize:18}}>{MEDAL[i]||'#'+(i+1)}</span>
-                <span style={{flex:1,fontWeight:500}}>{p.player_name}</span>
-                <span style={{fontWeight:700,color:C.blue,fontSize:13}}>{calcScore(p.prode)} pts</span>
-                <button onClick={async function(){
-                  setLoading(true)
-                  var row = await dbGetOne(p.player_name)
-                  setPlayer(p.player_name)
-                  setProdeState(row ? row.prode : emptyProde())
-                  setScreen('prode')
-                  setActiveTab('groups')
-                  setLoading(false)
-                }} style={{background:C.blue,color:'#fff',border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontSize:12}}>Ver prode</button>
-              </div>
-            )
-          })}
-          <button style={sBtn(C.red)} onClick={function(){setScreen('ranking');fetchPlayers()}}>Ver ranking completo</button>
+      {champ&&(
+        <div style={{textAlign:'center',padding:'10px',background:'linear-gradient(135deg,rgba(192,57,43,.1),rgba(21,101,192,.1))',borderRadius:12,marginBottom:8,border:'2px solid '+C.gold}}>
+          <img src={flag(champ.f)} alt={champ.n} style={{verticalAlign:'middle',marginRight:8}} />
+          <span style={{fontSize:15,fontWeight:700,color:C.blue}}>{champ.n} - CAMPEON!</span>
         </div>
       )}
+      <ProdeView prode={prode} results={results} readonly={false} setProde={saveProde} activeTab={activeTab} setActiveTab={setActiveTab} />
+      <ScoreSummary prode={prode} results={results} />
     </div>
   )
 }
 
-function GroupsTab(props) {
-  var prode = props.prode, setProde = props.setProde
-  var locked = isLocked('groups')
-  var tl = timeLeft('groups')
+// ── ProdeView ─────────────────────────────────────────────────
+function ProdeView(props) {
+  var prode=props.prode, results=props.results, readonly=props.readonly
+  var setProde=props.setProde, activeTab=props.activeTab, setActiveTab=props.setActiveTab
+  var tabs=[{id:'groups',label:'Grupos'},{id:'r32',label:'16avos'},{id:'r16',label:'Octavos'},{id:'qf',label:'Cuartos'},{id:'sf',label:'Semis'},{id:'final',label:'Final'}]
+  return (
+    <div>
+      <div style={{display:'flex',gap:2}}>
+        {tabs.map(function(t){return <button key={t.id} style={sTab(activeTab===t.id)} onClick={function(){setActiveTab(t.id)}}>{t.label}</button>})}
+      </div>
+      <div style={{background:'#fff',border:'1px solid '+C.border,borderRadius:'0 0 10px 10px',padding:'10px 8px'}}>
+        {activeTab==='groups'&&<GroupsTab prode={prode} setProde={setProde} readonly={readonly} />}
+        {activeTab==='r32'&&<KnockoutTab round='r32' prode={prode} setProde={setProde} readonly={readonly} />}
+        {activeTab==='r16'&&<KnockoutTab round='r16' prode={prode} setProde={setProde} readonly={readonly} />}
+        {activeTab==='qf'&&<KnockoutTab round='qf' prode={prode} setProde={setProde} readonly={readonly} />}
+        {activeTab==='sf'&&<KnockoutTab round='sf' prode={prode} setProde={setProde} readonly={readonly} />}
+        {activeTab==='final'&&<FinalTab prode={prode} setProde={setProde} readonly={readonly} />}
+      </div>
+    </div>
+  )
+}
 
-  function toggle(gName, idx) {
-    if (locked) return
-    var g = GROUPS.find(function(x){return x.name===gName})
-    var newG = Object.assign({}, prode.groups)
-    var k = gName+'_'+idx
-    var cur = newG[k]
-    var others = g.teams.map(function(_,i){return i}).filter(function(i){return i!==idx})
-    if (!cur) {
-      if (!others.some(function(i){return newG[gName+'_'+i]===1})) newG[k]=1
-      else if (!others.some(function(i){return newG[gName+'_'+i]===2})) newG[k]=2
-    } else if (cur===1) {
-      if (!others.some(function(i){return newG[gName+'_'+i]===2})) newG[k]=2
+function ScoreSummary(props) {
+  var prode=props.prode, results=props.results
+  var sc=calcScore(prode,results)
+  return (
+    <div style={{textAlign:'center',marginTop:10,padding:'10px',background:'#f9f9f9',borderRadius:10}}>
+      <div style={{fontSize:13,color:C.gray}}>Puntaje actual</div>
+      <div style={{fontSize:28,fontWeight:700,color:C.blue}}>{sc} pts</div>
+    </div>
+  )
+}
+
+// ── Groups Tab ────────────────────────────────────────────────
+function GroupsTab(props) {
+  var prode=props.prode, setProde=props.setProde, readonly=props.readonly
+
+  function toggleGroup(gName,idx) {
+    if (readonly) return
+    var g=GROUPS.find(function(x){return x.name===gName})
+    var newG=Object.assign({},prode.groups)
+    var k=gName+'_'+idx
+    var cur=newG[k]
+    var others=g.teams.map(function(_,i){return i}).filter(function(i){return i!==idx})
+    if(!cur){
+      if(!others.some(function(i){return newG[gName+'_'+i]===1}))newG[k]=1
+      else if(!others.some(function(i){return newG[gName+'_'+i]===2}))newG[k]=2
+    } else if(cur===1){
+      if(!others.some(function(i){return newG[gName+'_'+i]===2}))newG[k]=2
       else delete newG[k]
     } else delete newG[k]
-    setProde(Object.assign({}, prode, {groups:newG}))
+    setProde(Object.assign({},prode,{groups:newG}))
+  }
+
+  function setScore(matchId, side, val, matchDate) {
+    if (readonly || isMatchLocked(matchDate)) return
+    var newScores=Object.assign({},prode.scores)
+    var cur=newScores[matchId]||{a:'',b:''}
+    newScores[matchId]=Object.assign({},cur,{[side]:val})
+    setProde(Object.assign({},prode,{scores:newScores}))
   }
 
   return (
     <div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,fontSize:12}}>
-        <span style={{color:'#888'}}>{Object.keys(prode.groups).length}/48 clasificados</span>
-        {locked ? <span style={sLock}>Cerrado</span> : (tl && <span style={{color:C.gold,fontWeight:500}}>{tl}</span>)}
-      </div>
-      <div style={{fontSize:11,color:'#888',marginBottom:8}}>
-        Toca para elegir 1ro (dorado) o 2do (verde) de cada grupo
-      </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-        {GROUPS.map(function(g){
-          return (
-            <div key={g.name} style={{background:'#fff',border:'1px solid '+C.border,borderRadius:'10px',overflow:'hidden'}}>
-              <div style={{background:C.blue,color:'#fff',textAlign:'center',padding:'4px',fontSize:12,fontWeight:500}}>GRUPO {g.name}</div>
+      <div style={{fontSize:11,color:C.gray,marginBottom:8}}>Clasificados: {Object.keys(prode.groups).length}/48 | Toca para elegir 1ro (dorado) o 2do (verde)</div>
+      {GROUPS.map(function(g){
+        var gMatches=GROUP_MATCHES.filter(function(m){return m.g===g.name})
+        return(
+          <div key={g.name} style={{...sCard,marginBottom:10}}>
+            <div style={{background:C.blue,color:'#fff',padding:'5px 10px',fontSize:13,fontWeight:500,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span>GRUPO {g.name}</span>
+              <span style={{fontSize:11,opacity:.8}}>{Object.keys(prode.groups).filter(function(k){return k.startsWith(g.name+'_')}).length}/2 clasificados</span>
+            </div>
+            {/* Equipos */}
+            <div style={{padding:'4px 0'}}>
               {g.teams.map(function(t,i){
-                var pos = prode.groups[g.name+'_'+i]
-                var opacity = (locked && !pos) ? 0.6 : 1
-                return (
-                  <div key={i} style={Object.assign({},styleTeamRow(pos),{opacity:opacity})} onClick={function(){toggle(g.name,i)}}>
+                var pos=prode.groups[g.name+'_'+i]
+                return(
+                  <div key={i} style={Object.assign({},sTeamRow(pos),{opacity:readonly&&!pos?0.6:1})} onClick={function(){toggleGroup(g.name,i)}}>
                     <img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}} />
-                    <span style={{flex:1,fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.n}</span>
-                    {pos===1 && <span style={{fontSize:9,background:C.gold,color:'#4a2800',borderRadius:10,padding:'1px 4px'}}>1ro</span>}
-                    {pos===2 && <span style={{fontSize:9,background:C.green,color:'#fff',borderRadius:10,padding:'1px 4px'}}>2do</span>}
+                    <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.n}</span>
+                    {pos===1&&<span style={{fontSize:9,background:C.gold,color:'#4a2800',borderRadius:10,padding:'1px 5px'}}>1ro</span>}
+                    {pos===2&&<span style={{fontSize:9,background:C.green,color:'#fff',borderRadius:10,padding:'1px 5px'}}>2do</span>}
                   </div>
                 )
               })}
             </div>
-          )
-        })}
-      </div>
+            {/* Partidos con marcador */}
+            <div style={{borderTop:'1px solid '+C.border,padding:'6px 8px'}}>
+              <div style={{fontSize:11,color:C.gray,marginBottom:4}}>Marcadores pronosticados:</div>
+              {gMatches.map(function(m){
+                var locked=isMatchLocked(m.date)
+                var tl=timeLeftStr(m.date)
+                var ta=g.teams[m.a], tb=g.teams[m.b]
+                var sc=prode.scores&&prode.scores[m.id]
+                return(
+                  <div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',borderBottom:'1px solid #f0f0f0',fontSize:12}}>
+                    <img src={flag(ta.f)} alt={ta.n} style={{width:16,height:11,objectFit:'cover'}} />
+                    <span style={{width:70,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ta.n}</span>
+                    <input type="number" min="0" max="20" value={sc?sc.a:''} onChange={function(e){setScore(m.id,'a',e.target.value,m.date)}}
+                      disabled={locked||readonly} style={{width:32,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-" />
+                    <span style={{color:C.gray}}>-</span>
+                    <input type="number" min="0" max="20" value={sc?sc.b:''} onChange={function(e){setScore(m.id,'b',e.target.value,m.date)}}
+                      disabled={locked||readonly} style={{width:32,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-" />
+                    <img src={flag(tb.f)} alt={tb.n} style={{width:16,height:11,objectFit:'cover'}} />
+                    <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tb.n}</span>
+                    {locked?<span style={sLock}>Cerrado</span>:(tl&&<span style={{color:C.gold,fontSize:10}}>{tl}</span>)}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
 
+// ── Knockout Tab ──────────────────────────────────────────────
 function KnockoutTab(props) {
-  var round=props.round, prode=props.prode, setProde=props.setProde
-  var locked = isLocked(round)
-  var tl = timeLeft(round)
-  var count = ROUND_COUNTS[round]
-
-  function pick(matchId, team) {
-    if (locked) return
-    var newRound = Object.assign({}, prode[round], {[matchId]:team})
-    setProde(Object.assign({}, prode, {[round]:newRound}))
-  }
-
-  var items = []
-  for (var i=0; i<count; i++) {
+  var round=props.round, prode=props.prode, setProde=props.setProde, readonly=props.readonly
+  var locked=isRoundLocked(round)
+  var tl=timeLeftStr(KNOCKOUT_DATES[round])
+  var count=ROUND_COUNTS[round]
+  var items=[]
+  for(var i=0;i<count;i++){
     (function(idx){
-      var id = round+'_'+idx
-      var teams = getMatchTeams(prode, round, idx)
-      var ta = teams[0], tb = teams[1]
-      var w = prode[round][id] || null
+      var id=round+'_'+idx
+      var teams=getMatchTeams(prode,round,idx)
+      var ta=teams[0],tb=teams[1]
+      var w=prode[round][id]||null
       items.push(
         <div key={id} style={Object.assign({},sCard,{marginBottom:8})}>
           <div style={{background:C.red,color:'#fff',fontSize:11,textAlign:'center',padding:'3px'}}>{ROUND_LABELS[round]} {idx+1}</div>
           {[ta,tb].map(function(t,ti){
-            var isW = w && t && w.n===t.n
-            return (
-              <div key={ti} style={Object.assign({},styleMatchTeam(isW),{cursor:(locked||!t)?'default':'pointer'})}
-                onClick={function(){if(t&&!locked)pick(id,t)}}>
-                {t
-                  ? <><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}} /><span>{t.n}</span>{isW&&<span style={{marginLeft:'auto'}}>OK</span>}</>
-                  : <span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}
+            var isW=w&&t&&w.n===t.n
+            return(
+              <div key={ti} style={Object.assign({},sMatchTeam(isW),{cursor:(locked||!t||readonly)?'default':'pointer'})}
+                onClick={function(){if(t&&!locked&&!readonly){var nr=Object.assign({},prode[round],{[id]:t});setProde(Object.assign({},prode,{[round]:nr}))}}}>
+                {t?<><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}} /><span>{t.n}</span>{isW&&<span style={{marginLeft:'auto',color:C.blue}}>OK</span>}</>
+                  :<span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}
               </div>
             )
           })}
@@ -381,76 +589,168 @@ function KnockoutTab(props) {
       )
     })(i)
   }
-
-  return (
+  return(
     <div>
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>
-        {locked ? <span style={sLock}>Cerrado</span> : (tl && <span style={{color:C.gold,fontSize:12,fontWeight:500}}>{tl}</span>)}
+        {locked?<span style={sLock}>Cerrado</span>:(tl&&<span style={{color:C.gold,fontSize:12,fontWeight:500}}>{tl} para el cierre</span>)}
       </div>
       {items}
     </div>
   )
 }
 
+// ── Final Tab ─────────────────────────────────────────────────
 function FinalTab(props) {
-  var prode=props.prode, setProde=props.setProde
-  var locked = isLocked('final')
-  var tl = timeLeft('final')
-  var sf0w = (prode.sf&&prode.sf['sf_0'])||null
-  var sf1w = (prode.sf&&prode.sf['sf_1'])||null
-  var qf0=(prode.qf&&prode.qf['qf_0'])||null
-  var qf1=(prode.qf&&prode.qf['qf_1'])||null
-  var qf2=(prode.qf&&prode.qf['qf_2'])||null
-  var qf3=(prode.qf&&prode.qf['qf_3'])||null
+  var prode=props.prode, setProde=props.setProde, readonly=props.readonly
+  var locked=isRoundLocked('final')
+  var tl=timeLeftStr(KNOCKOUT_DATES.final)
+  var sf0w=(prode.sf&&prode.sf.sf_0)||null
+  var sf1w=(prode.sf&&prode.sf.sf_1)||null
+  var qf0=(prode.qf&&prode.qf.qf_0)||null,qf1=(prode.qf&&prode.qf.qf_1)||null
+  var qf2=(prode.qf&&prode.qf.qf_2)||null,qf3=(prode.qf&&prode.qf.qf_3)||null
   var loser0=sf0w?(sf0w.n===(qf0&&qf0.n)?qf1:qf0):null
   var loser1=sf1w?(sf1w.n===(qf2&&qf2.n)?qf3:qf2):null
-  var champ=(prode.final&&prode.final['final_m'])||null
+  var champ=(prode.final&&prode.final.final_m)||null
 
   function pick(matchId,team,field){
-    if(locked)return
-    var newField=Object.assign({},prode[field],{[matchId]:team})
-    setProde(Object.assign({},prode,{[field]:newField}))
+    if(locked||readonly)return
+    setProde(Object.assign({},prode,{[field]:Object.assign({},prode[field],{[matchId]:team})}))
   }
 
-  return (
+  function MatchRow(t,id,field,w){
+    var isW=w&&t&&w.n===t.n
+    return(
+      <div style={Object.assign({},sMatchTeam(isW),{cursor:(locked||!t||readonly)?'default':'pointer'})}
+        onClick={function(){if(t&&!locked&&!readonly)pick(id,t,field)}}>
+        {t?<><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}} /><span>{t.n}</span>{isW&&<span style={{marginLeft:'auto'}}>OK</span>}</>
+          :<span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}
+      </div>
+    )
+  }
+
+  return(
     <div>
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>
-        {locked?<span style={sLock}>Cerrado</span>:(tl&&<span style={{color:C.gold,fontSize:12,fontWeight:500}}>{tl}</span>)}
+        {locked?<span style={sLock}>Cerrado</span>:(tl&&<span style={{color:C.gold,fontSize:12,fontWeight:500}}>{tl} para el cierre</span>)}
       </div>
       {champ&&(
-        <div style={{textAlign:'center',padding:'16px',background:'linear-gradient(135deg,rgba(192,57,43,.1),rgba(21,101,192,.1))',borderRadius:12,marginBottom:12,border:'2px solid '+C.gold}}>
-          <img src={flag(champ.f)} alt={champ.n} style={{width:40,height:30,objectFit:'cover',marginBottom:8}} />
-          <div style={{fontSize:18,fontWeight:700,color:C.blue}}>{champ.n}</div>
-          <div style={{fontSize:12,color:'#888',marginTop:4}}>Tu campeon Mundial 2026!</div>
+        <div style={{textAlign:'center',padding:'14px',background:'linear-gradient(135deg,rgba(192,57,43,.1),rgba(21,101,192,.1))',borderRadius:12,marginBottom:12,border:'2px solid '+C.gold}}>
+          <img src={flag(champ.f)} alt={champ.n} style={{width:36,height:27,objectFit:'cover',marginBottom:6}} />
+          <div style={{fontSize:17,fontWeight:700,color:C.blue}}>{champ.n}</div>
+          <div style={{fontSize:12,color:C.gray}}>Tu campeon Mundial 2026</div>
         </div>
       )}
-      <div style={{fontSize:13,fontWeight:500,color:'#888',marginBottom:6}}>3er Puesto</div>
+      <div style={{fontSize:13,fontWeight:500,color:C.gray,marginBottom:6}}>3er Puesto</div>
       <div style={Object.assign({},sCard,{marginBottom:12})}>
         <div style={{background:'#888',color:'#fff',fontSize:11,textAlign:'center',padding:'3px'}}>3er Puesto</div>
-        {[loser0,loser1].map(function(t,ti){
-          var w=(prode.third&&prode.third['third'])||null
-          var isW=w&&t&&w.n===t.n
-          return(
-            <div key={ti} style={Object.assign({},styleMatchTeam(isW),{cursor:(locked||!t)?'default':'pointer'})}
-              onClick={function(){if(t&&!locked)pick('third',t,'third')}}>
-              {t?<><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}}/><span>{t.n}</span>{isW&&<span style={{marginLeft:'auto'}}>OK</span>}</>:<span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}
-            </div>
-          )
-        })}
+        {MatchRow(loser0,'third','third',(prode.third&&prode.third.third)||null)}
+        {MatchRow(loser1,'third','third',(prode.third&&prode.third.third)||null)}
       </div>
       <div style={{fontSize:13,fontWeight:500,color:C.red,marginBottom:6}}>Gran Final</div>
       <div style={Object.assign({},sCard,{border:'2px solid '+C.gold})}>
         <div style={{background:C.gold,color:'#4a2800',fontSize:12,textAlign:'center',padding:'4px',fontWeight:600}}>FINAL MUNDIAL 2026</div>
-        {[sf0w,sf1w].map(function(t,ti){
-          var w=(prode.final&&prode.final['final_m'])||null
-          var isW=w&&t&&w.n===t.n
-          return(
-            <div key={ti} style={Object.assign({},styleMatchTeam(isW),{cursor:(locked||!t)?'default':'pointer'})}
-              onClick={function(){if(t&&!locked)pick('final_m',t,'final')}}>
-              {t?<><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}}/><span style={{fontSize:14}}>{t.n}</span>{isW&&<span style={{marginLeft:'auto',fontSize:14}}>CAMPEON</span>}</>:<span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}
-            </div>
-          )
+        {MatchRow(sf0w,'final_m','final',(prode.final&&prode.final.final_m)||null)}
+        {MatchRow(sf1w,'final_m','final',(prode.final&&prode.final.final_m)||null)}
+      </div>
+    </div>
+  )
+}
+
+// ── Admin Panel ───────────────────────────────────────────────
+function AdminPanel(props) {
+  var players=props.players, results=props.results, saveResults=props.saveResults, setScreen=props.setScreen, fetchAll=props.fetchAll
+  var [localResults,setLocalResults] = useState(results)
+  var [activeTab,setActiveTab] = useState('ranking')
+  var [saving,setSaving] = useState(false)
+
+  var sorted=[...players].sort(function(a,b){return calcScore(b.prode,results)-calcScore(a.prode,results)})
+
+  async function handleSave(){
+    setSaving(true)
+    await saveResults(localResults)
+    setSaving(false)
+  }
+
+  function setResult(matchId,side,val){
+    var cur=localResults[matchId]||{a:'',b:''}
+    setLocalResults(Object.assign({},localResults,{[matchId]:Object.assign({},cur,{[side]:val})}))
+  }
+
+  return(
+    <div style={{maxWidth:600,margin:'0 auto',padding:'8px'}}>
+      <div style={sHeader}>
+        <div style={{fontSize:18,fontWeight:600}}>Panel Admin - Tomy</div>
+        <button onClick={function(){setScreen('home');fetchAll()}} style={{background:'rgba(255,255,255,.2)',color:'#fff',border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontSize:12,marginTop:8}}>Volver al inicio</button>
+      </div>
+
+      <div style={{display:'flex',gap:4,marginBottom:0}}>
+        {['ranking','resultados'].map(function(t){
+          return <button key={t} style={sTab(activeTab===t)} onClick={function(){setActiveTab(t)}}>{t.charAt(0).toUpperCase()+t.slice(1)}</button>
         })}
+      </div>
+
+      <div style={{background:'#fff',border:'1px solid '+C.border,borderRadius:'0 0 10px 10px',padding:'12px'}}>
+
+        {activeTab==='ranking'&&(
+          <div>
+            <div style={{fontSize:14,fontWeight:500,color:C.blue,marginBottom:10}}>Ranking general ({players.length} jugadores)</div>
+            {sorted.map(function(p,i){
+              var sc=calcScore(p.prode,results)
+              var ch=p.prode.final&&p.prode.final.final_m
+              var grouped=Object.keys(p.prode.groups||{}).length
+              return(
+                <div key={p.player_name} style={{display:'flex',alignItems:'center',gap:8,padding:'8px',background:i===0?'#fff8e1':i%2===0?'#fafafa':'#fff',borderRadius:8,marginBottom:4,fontSize:13}}>
+                  <span style={{fontWeight:700,minWidth:24,color:i===0?C.gold:i===1?C.gray:C.border}}>{i+1}.</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:600}}>{p.player_name}</div>
+                    <div style={{fontSize:11,color:C.gray}}>
+                      Grupos: {grouped}/48
+                      {ch&&(' | Campeon: '+ch.n)}
+                    </div>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontSize:18,fontWeight:700,color:C.blue}}>{sc}</div>
+                    <div style={{fontSize:10,color:C.gray}}>pts</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {activeTab==='resultados'&&(
+          <div>
+            <div style={{fontSize:14,fontWeight:500,color:C.blue,marginBottom:10}}>Cargar resultados reales</div>
+            <div style={{fontSize:12,color:C.gray,marginBottom:10}}>Nota: En penales ingresa el resultado del tiempo reglamentario (ej: 1-1 si termino empatado)</div>
+            {GROUPS.map(function(g){
+              var gMatches=GROUP_MATCHES.filter(function(m){return m.g===g.name})
+              return(
+                <div key={g.name} style={{marginBottom:12}}>
+                  <div style={{fontSize:12,fontWeight:600,color:C.blue,marginBottom:6,borderBottom:'1px solid '+C.border,paddingBottom:4}}>Grupo {g.name}</div>
+                  {gMatches.map(function(m){
+                    var ta=g.teams[m.a],tb=g.teams[m.b]
+                    var r=localResults[m.id]||{a:'',b:''}
+                    return(
+                      <div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',fontSize:12}}>
+                        <img src={flag(ta.f)} alt={ta.n} style={{width:16,height:11,objectFit:'cover'}} />
+                        <span style={{width:65,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ta.n}</span>
+                        <input type="number" min="0" max="20" value={r.a} onChange={function(e){setResult(m.id,'a',e.target.value)}}
+                          style={{width:34,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-" />
+                        <span>-</span>
+                        <input type="number" min="0" max="20" value={r.b} onChange={function(e){setResult(m.id,'b',e.target.value)}}
+                          style={{width:34,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-" />
+                        <img src={flag(tb.f)} alt={tb.n} style={{width:16,height:11,objectFit:'cover'}} />
+                        <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tb.n}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+            <button style={sBtn(C.green)} onClick={handleSave} disabled={saving}>{saving?'Guardando...':'Guardar todos los resultados'}</button>
+          </div>
+        )}
+
       </div>
     </div>
   )
