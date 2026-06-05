@@ -684,7 +684,7 @@ function AdminPanel(props) {
       </div>
 
       <div style={{display:'flex',gap:4,marginBottom:0}}>
-        {['ranking','resultados'].map(function(t){
+        {['ranking','resultados','jugadores'].map(function(t){
           return <button key={t} style={sTab(activeTab===t)} onClick={function(){setActiveTab(t)}}>{t.charAt(0).toUpperCase()+t.slice(1)}</button>
         })}
       </div>
@@ -715,6 +715,30 @@ function AdminPanel(props) {
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {activeTab==='jugadores'&&(
+          <div>
+            <div style={{fontSize:14,fontWeight:500,color:C.blue,marginBottom:10}}>Gestionar jugadores</div>
+            {players.filter(function(p){return p.player_name!==ADMIN}).map(function(p){
+              return(
+                <div key={p.player_name} style={{display:'flex',alignItems:'center',gap:8,padding:'8px',borderBottom:'1px solid '+C.border,fontSize:13}}>
+                  <span style={{flex:1,fontWeight:500}}>{p.player_name}</span>
+                  <span style={{color:C.blue,fontWeight:700}}>{calcScore(p.prode,results)} pts</span>
+                  <button onClick={async function(){
+                    if(!window.confirm('Borrar a '+p.player_name+'?'))return
+                    await supabase.from('prodes').delete().eq('player_name',p.player_name)
+                    fetchAll()
+                  }} style={sSmallBtn(C.red)}>Borrar</button>
+                </div>
+              )
+            })}
+            <button onClick={async function(){
+              if(!window.confirm('Borrar TODOS los jugadores? Esto no se puede deshacer.'))return
+              await supabase.from('prodes').delete().neq('player_name',ADMIN)
+              fetchAll()
+            }} style={sBtn(C.red,{marginTop:16})}>Borrar todos los jugadores</button>
           </div>
         )}
 
