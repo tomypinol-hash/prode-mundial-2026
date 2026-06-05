@@ -333,7 +333,7 @@ function GroupsTab({prode,setProde}) {
             {g.teams.map((t,i)=>{
               const pos = prode.groups[`${g.name}_${i}`]
               return (
-                <div key={i} style={{...s.teamRow(pos),opacity:locked&&!pos?.0.6:1}} onClick={()=>toggle(g.name,i)}>
+                <div key={i} style={{...s.teamRow(pos),opacity={(locked && !pos) ? 0.6 : 1}} onClick={()=>toggle(g.name,i)}>
                   <span style={{fontSize:15}}>{t.f}</span>
                   <span style={{flex:1,fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.n}</span>
                   {pos===1&&<span style={{fontSize:9,background:C.gold,color:'#4a2800',borderRadius:10,padding:'1px 4px'}}>1°</span>}
