@@ -241,6 +241,64 @@ async function dbSaveResults(data) {
   if (res.error) console.error(res.error)
 }
 
+const FDORG_KEY = 'acdf3492441b4b24bad344dd71f2eaa3'
+const WC2026_ID = 2000
+
+async function fetchLiveMatches() {
+  try {
+    var res = await fetch('https://api.football-data.org/v4/competitions/'+WC2026_ID+'/matches', {
+      headers: { 'X-Auth-Token': FDORG_KEY }
+    })
+    if (!res.ok) return null
+    var json = await res.json()
+    return json.matches || null
+  } catch(e) { return null }
+}
+
+async function fetchLiveResults() {
+  try {
+    var res = await fetch('https://api.football-data.org/v4/competitions/'+WC2026_ID+'/matches?status=FINISHED', {
+      headers: { 'X-Auth-Token': FDORG_KEY }
+    })
+    if (!res.ok) return null
+    var json = await res.json()
+    var results = {}
+    if (!json.matches) return null
+    json.matches.forEach(function(m) {
+      // Buscar partido correspondiente por equipos
+      var homeName = m.homeTeam.name
+      var awayName = m.awayTeam.name
+      var ha = m.score.fullTime.home
+      var hb = m.score.fullTime.away
+      if (ha === null || hb === null) return
+      // Buscar en GROUP_MATCHES por nombre de equipo
+      GROUP_MATCHES.forEach(function(gm) {
+        var g = GROUPS.find(function(x){return x.name===gm.g})
+        if (!g) return
+        var ta = g.teams[gm.a], tb = g.teams[gm.b]
+        if (
+          (homeName.toLowerCase().includes(ta.n.toLowerCase()) || ta.n.toLowerCase().includes(homeName.toLowerCase().split(' ')[0])) &&
+          (awayName.toLowerCase().includes(tb.n.toLowerCase()) || tb.n.toLowerCase().includes(awayName.toLowerCase().split(' ')[0]))
+        ) {
+          results[gm.id] = {a: String(ha), b: String(hb)}
+        }
+      })
+      // Knockouts por stage
+      var stage = m.stage
+      var roundMap = {LAST_32:'r32', ROUND_OF_16:'r16', QUARTER_FINALS:'qf', SEMI_FINALS:'sf', FINAL:'final'}
+      var round = roundMap[stage]
+      if (round) {
+        // guardar por id de partido de la API
+        results['api_'+m.id] = {a: String(ha), b: String(hb), home: homeName, away: awayName, round: round}
+      }
+    })
+    return results
+  } catch(e) {
+    console.error('API error:', e)
+    return null
+  }
+}
+
 var R32_PAIRS = [
   [{g:'A',p:1},{g:'B',p:2}],[{g:'C',p:1},{g:'D',p:2}],
   [{g:'E',p:1},{g:'F',p:2}],[{g:'G',p:1},{g:'H',p:2}],
@@ -287,7 +345,22 @@ export default function App() {
 
   useEffect(function(){
     fetchAll()
+    // Actualizar resultados en vivo cada 5 minutos
+    var interval = setInterval(function(){
+      syncLiveResults()
+    }, 5 * 60 * 1000)
+    return function(){ clearInterval(interval) }
   },[])
+
+  async function syncLiveResults() {
+    var liveResults = await fetchLiveResults()
+    if (liveResults && Object.keys(liveResults).length > 0) {
+      var current = await dbGetResults()
+      var merged = Object.assign({}, current, liveResults)
+      await dbSaveResults(merged)
+      setResults(merged)
+    }
+  }
 
   async function fetchAll() {
     setLoading(true)
@@ -344,7 +417,7 @@ export default function App() {
     fetchAll()
   }
 
-  // ── HOME ──
+  // HOME ── ahora con botón En Vivo
   if (screen==='home') {
     var sorted = [...players].sort(function(a,b){return calcScore(b.prode,results)-calcScore(a.prode,results)})
     return (
@@ -353,6 +426,9 @@ export default function App() {
           <div style={{fontSize:38,marginBottom:4}}>&#127942;</div>
           <div style={{fontSize:22,fontWeight:600}}>PRODE MUNDIAL 2026</div>
           <div style={{fontSize:13,opacity:.9,marginTop:4}}>USA - Mexico - Canada</div>
+          <button onClick={function(){setScreen('live')}} style={{background:'rgba(255,255,255,.25)',color:'#fff',border:'2px solid rgba(255,255,255,.6)',borderRadius:10,padding:'6px 20px',cursor:'pointer',fontSize:13,fontWeight:600,marginTop:10}}>
+            Ver partidos en vivo
+          </button>
         </div>
 
         <div style={{...sCard,padding:'20px 16px',marginTop:10}}>
@@ -393,6 +469,11 @@ export default function App() {
         )}
       </div>
     )
+  }
+
+  // ── LIVE ──
+  if (screen==='live') {
+    return <LiveScreen setScreen={setScreen} />
   }
 
   // ── VIEW (solo lectura) ──
@@ -656,7 +737,140 @@ function FinalTab(props) {
   )
 }
 
-// ── Admin Panel ───────────────────────────────────────────────
+// ── Live Screen ───────────────────────────────────────────────
+function LiveScreen(props) {
+  var setScreen = props.setScreen
+  var [matches, setMatches] = useState(null)
+  var [loading, setLoading] = useState(true)
+  var [lastUpdate, setLastUpdate] = useState(null)
+  var [filter, setFilter] = useState('hoy')
+
+  async function load() {
+    setLoading(true)
+    var data = await fetchLiveMatches()
+    setMatches(data)
+    setLastUpdate(new Date())
+    setLoading(false)
+  }
+
+  useEffect(function(){
+    load()
+    var t = setInterval(load, 60000)
+    return function(){ clearInterval(t) }
+  },[])
+
+  function statusLabel(m) {
+    var s = m.status
+    if (s==='FINISHED') return {text:'Finalizado', color:'#888'}
+    if (s==='IN_PLAY') return {text:'EN VIVO', color:C.red}
+    if (s==='PAUSED') return {text:'Descanso', color:C.gold}
+    if (s==='TIMED'||s==='SCHEDULED') {
+      var d = new Date(m.utcDate)
+      return {text:d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})+' hs', color:C.blue}
+    }
+    return {text:s, color:C.gray}
+  }
+
+  function getScore(m) {
+    if (m.status==='SCHEDULED'||m.status==='TIMED') return null
+    var s = m.score.fullTime
+    if (s.home===null) s = m.score.halfTime
+    return s
+  }
+
+  function matchDate(m) { return new Date(m.utcDate) }
+
+  var now = new Date()
+  var todayStr = now.toDateString()
+
+  var filtered = !matches ? [] : matches.filter(function(m){
+    var md = matchDate(m)
+    if (filter==='hoy') return md.toDateString()===todayStr
+    if (filter==='vivo') return m.status==='IN_PLAY'||m.status==='PAUSED'
+    if (filter==='proximos') return m.status==='SCHEDULED'||m.status==='TIMED'
+    if (filter==='finalizados') return m.status==='FINISHED'
+    return true
+  }).sort(function(a,b){ return matchDate(a)-matchDate(b) })
+
+  var filterBtns = [
+    {id:'hoy',label:'Hoy'},
+    {id:'vivo',label:'En Vivo'},
+    {id:'proximos',label:'Proximos'},
+    {id:'finalizados',label:'Finalizados'},
+    {id:'todos',label:'Todos'},
+  ]
+
+  return (
+    <div style={{maxWidth:480,margin:'0 auto',padding:'8px'}}>
+      <div style={sHeader}>
+        <div style={{fontSize:18,fontWeight:600}}>Partidos Mundial 2026</div>
+        {lastUpdate&&<div style={{fontSize:11,opacity:.8,marginTop:2}}>Actualizado: {lastUpdate.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})} hs</div>}
+        <div style={{display:'flex',gap:8,justifyContent:'center',marginTop:8}}>
+          <button onClick={function(){setScreen('home')}} style={{background:'rgba(255,255,255,.2)',color:'#fff',border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontSize:12}}>Volver</button>
+          <button onClick={load} style={{background:'rgba(255,255,255,.2)',color:'#fff',border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontSize:12}}>Actualizar</button>
+        </div>
+      </div>
+
+      <div style={{display:'flex',gap:4,marginBottom:8,overflowX:'auto',paddingBottom:4}}>
+        {filterBtns.map(function(b){
+          return <button key={b.id} onClick={function(){setFilter(b.id)}} style={{
+            padding:'6px 12px',border:'none',borderRadius:20,cursor:'pointer',fontSize:12,fontWeight:500,whiteSpace:'nowrap',
+            background:filter===b.id?C.blue:'#eee',color:filter===b.id?'#fff':'#555'
+          }}>{b.label}</button>
+        })}
+      </div>
+
+      {loading && <div style={{textAlign:'center',padding:30,color:C.gray}}>Cargando partidos...</div>}
+
+      {!loading && filtered.length===0 && (
+        <div style={{textAlign:'center',padding:30,color:C.gray}}>
+          {filter==='vivo'?'No hay partidos en vivo ahora':'No hay partidos en esta categoria'}
+        </div>
+      )}
+
+      {!loading && filtered.map(function(m){
+        var sl = statusLabel(m)
+        var sc = getScore(m)
+        var isLive = m.status==='IN_PLAY'||m.status==='PAUSED'
+        var isFinished = m.status==='FINISHED'
+        var md = matchDate(m)
+        return (
+          <div key={m.id} style={{...sCard,border:isLive?'2px solid '+C.red:'1px solid '+C.border}}>
+            {isLive&&<div style={{background:C.red,color:'#fff',fontSize:11,textAlign:'center',padding:'2px',fontWeight:600,letterSpacing:1}}>EN VIVO</div>}
+            <div style={{padding:'10px 12px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                <span style={{fontSize:11,color:sl.color,fontWeight:600}}>{sl.text}</span>
+                <span style={{fontSize:11,color:C.gray}}>{m.stage&&m.stage.replace(/_/g,' ')}</span>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <div style={{flex:1,textAlign:'right'}}>
+                  <div style={{fontSize:14,fontWeight:isFinished||isLive?700:400}}>{m.homeTeam.name}</div>
+                  {m.homeTeam.crest&&<img src={m.homeTeam.crest} alt="" style={{width:24,height:24,objectFit:'contain',marginTop:4}} />}
+                </div>
+                <div style={{minWidth:70,textAlign:'center'}}>
+                  {sc ? (
+                    <div style={{fontSize:24,fontWeight:700,color:isLive?C.red:isFinished?C.blue:'#333'}}>
+                      {sc.home} - {sc.away}
+                    </div>
+                  ) : (
+                    <div style={{fontSize:13,color:C.gray}}>
+                      {md.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})}
+                    </div>
+                  )}
+                </div>
+                <div style={{flex:1,textAlign:'left'}}>
+                  <div style={{fontSize:14,fontWeight:isFinished||isLive?700:400}}>{m.awayTeam.name}</div>
+                  {m.awayTeam.crest&&<img src={m.awayTeam.crest} alt="" style={{width:24,height:24,objectFit:'contain',marginTop:4}} />}
+                </div>
+              </div>
+              {m.venue&&<div style={{fontSize:11,color:C.gray,textAlign:'center',marginTop:6}}>{m.venue}</div>}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 function AdminPanel(props) {
   var players=props.players, results=props.results, saveResults=props.saveResults, setScreen=props.setScreen, fetchAll=props.fetchAll
   var [localResults,setLocalResults] = useState(results)
@@ -745,7 +959,23 @@ function AdminPanel(props) {
         {activeTab==='resultados'&&(
           <div>
             <div style={{fontSize:14,fontWeight:500,color:C.blue,marginBottom:10}}>Cargar resultados reales</div>
-            <div style={{fontSize:12,color:C.gray,marginBottom:10}}>Nota: En penales ingresa el resultado del tiempo reglamentario (ej: 1-1 si termino empatado)</div>
+            <div style={{fontSize:12,color:C.gray,marginBottom:6}}>Los resultados se sincronizan automaticamente cada 5 minutos desde football-data.org</div>
+            <button onClick={async function(){
+              setSaving(true)
+              var liveResults = await fetchLiveResults()
+              if (liveResults) {
+                var current = await dbGetResults()
+                var merged = Object.assign({}, current, liveResults)
+                await saveResults(merged)
+                alert('Resultados actualizados!')
+              } else {
+                alert('No se pudo conectar con la API. Intenta de nuevo.')
+              }
+              setSaving(false)
+            }} style={sBtn(C.green,{marginBottom:12})} disabled={saving}>
+              {saving ? 'Sincronizando...' : 'Sincronizar resultados ahora'}
+            </button>
+            <div style={{fontSize:12,color:C.gray,marginBottom:10}}>O cargalos manualmente (en penales ingresa el resultado del tiempo reglamentario):</div>
             {GROUPS.map(function(g){
               var gMatches=GROUP_MATCHES.filter(function(m){return m.g===g.name})
               return(
