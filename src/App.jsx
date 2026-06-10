@@ -315,7 +315,7 @@ export default function App(){
   return(
     <div style={{maxWidth:480,margin:'0 auto',padding:'12px 8px'}}>
       <div style={sHeader}>
-        <div style={{fontSize:38,marginBottom:4}}>&#127942;</div>
+        <div style={{fontSize:38,marginBottom:4}}>🏆</div>
         <div style={{fontSize:22,fontWeight:600}}>PRODE MUNDIAL 2026</div>
         <div style={{fontSize:13,opacity:.9,marginTop:4}}>USA - Mexico - Canada</div>
         <button onClick={function(){setScreen('live')}} style={{background:'rgba(255,255,255,.25)',color:'#fff',border:'2px solid rgba(255,255,255,.6)',borderRadius:10,padding:'6px 20px',cursor:'pointer',fontSize:13,fontWeight:600,marginTop:10}}>Ver partidos en vivo</button>
@@ -334,7 +334,7 @@ export default function App(){
             var sc=calcScore(p.prode,results),ch=getChampion(p.prode)
             return(
               <div key={p.player_name} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid '+C.border,fontSize:13}}>
-                <span style={{fontSize:16,minWidth:26}}>{i===0?'&#127941;':i===1?'&#129352;':i===2?'&#129353;':(i+1)+'.'}  </span>
+                <span style={{fontSize:16,minWidth:26}}>{i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'}  </span>
                 <div style={{flex:1}}><span style={{fontWeight:600}}>{p.player_name}</span>{ch&&<span style={{fontSize:11,color:C.gray,marginLeft:6}}>{ch.n}</span>}</div>
                 <span style={{fontWeight:700,color:C.blue,fontSize:14}}>{sc} pts</span>
                 <button onClick={async function(){setLoading(true);var row=await dbGetOne(p.player_name);setPlayer(p.player_name);setProdeState(row?row.prode:emptyProde());setScreen('view');setActiveTab('groups');setLoading(false)}} style={sSmallBtn(C.blue)}>Ver</button>
