@@ -242,11 +242,11 @@ async function dbSaveResults(data) {
 }
 
 const FDORG_KEY = 'acdf3492441b4b24bad344dd71f2eaa3'
-const WC2026_ID = 2000
+const WC2026_ID = 'WC'
 
 async function fetchLiveMatches() {
   try {
-    var res = await fetch('https://api.football-data.org/v4/competitions/'+WC2026_ID+'/matches', {
+    var res = await fetch('https://api.football-data.org/v4/competitions/WC/matches?season=2026', {
       headers: { 'X-Auth-Token': FDORG_KEY }
     })
     if (!res.ok) return null
@@ -257,7 +257,7 @@ async function fetchLiveMatches() {
 
 async function fetchLiveResults() {
   try {
-    var res = await fetch('https://api.football-data.org/v4/competitions/'+WC2026_ID+'/matches?status=FINISHED', {
+    var res = await fetch('https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED&season=2026', {
       headers: { 'X-Auth-Token': FDORG_KEY }
     })
     if (!res.ok) return null
