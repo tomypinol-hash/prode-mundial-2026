@@ -176,31 +176,33 @@ async function dbGetOne(name){var r=await supabase.from('prodes').select('*').eq
 async function dbGetResults(){var r=await supabase.from('results').select('*').eq('id','main').single();return r.error?{}:r.data?r.data.data:{}}
 async function dbSaveResults(data){var r=await supabase.from('results').upsert({id:'main',data,updated_at:new Date().toISOString()},{onConflict:'id'});if(r.error)console.error(r.error)}
 
-async function fetchLiveMatches(){
+async function apiFootball(endpoint){
   try{
-    var r=await fetch('https://v3.football.api-sports.io/fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON,{
-      headers:{'x-apisports-key':API_FOOTBALL_KEY}
-    })
+    var r=await fetch('/api/football?endpoint='+encodeURIComponent(endpoint))
     if(!r.ok)return null
     var j=await r.json()
-    if(!j.response)return null
-    // Convertir al formato esperado por LiveScreen
-    return j.response.map(function(f){
-      return {
-        id: f.fixture.id,
-        utcDate: f.fixture.date,
-        status: mapStatus(f.fixture.status.short),
-        stage: f.league.round,
-        venue: f.fixture.venue.name,
-        homeTeam: {name: f.teams.home.name, crest: f.teams.home.logo},
-        awayTeam: {name: f.teams.away.name, crest: f.teams.away.logo},
-        score: {
-          fullTime: {home: f.goals.home, away: f.goals.away},
-          halfTime: {home: f.score.halftime.home, away: f.score.halftime.away}
-        }
-      }
-    })
+    return j.response||null
   }catch(e){console.error(e);return null}
+}
+
+async function fetchLiveMatches(){
+  var data=await apiFootball('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON)
+  if(!data)return null
+  return data.map(function(f){
+    return{
+      id:f.fixture.id,
+      utcDate:f.fixture.date,
+      status:mapStatus(f.fixture.status.short),
+      stage:f.league.round,
+      venue:f.fixture.venue.name,
+      homeTeam:{name:f.teams.home.name,crest:f.teams.home.logo},
+      awayTeam:{name:f.teams.away.name,crest:f.teams.away.logo},
+      score:{
+        fullTime:{home:f.goals.home,away:f.goals.away},
+        halfTime:{home:f.score.halftime.home,away:f.score.halftime.away}
+      }
+    }
+  })
 }
 
 function mapStatus(s){
@@ -212,28 +214,23 @@ function mapStatus(s){
 }
 
 async function fetchLiveResults(){
-  try{
-    var r=await fetch('https://v3.football.api-sports.io/fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&status=FT-AET-PEN',{
-      headers:{'x-apisports-key':API_FOOTBALL_KEY}
+  var data=await apiFootball('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&status=FT')
+  if(!data)return null
+  var results={}
+  data.forEach(function(f){
+    var ha=f.goals.home,hb=f.goals.away
+    if(ha===null||hb===null)return
+    var hn=f.teams.home.name.toLowerCase(),an=f.teams.away.name.toLowerCase()
+    GROUP_MATCHES.forEach(function(gm){
+      var g=GROUPS.find(function(x){return x.name===gm.g})
+      if(!g)return
+      var ta=g.teams[gm.a].n.toLowerCase(),tb=g.teams[gm.b].n.toLowerCase()
+      if((hn.includes(ta.split(' ')[0])||ta.includes(hn.split(' ')[0]))&&(an.includes(tb.split(' ')[0])||tb.includes(an.split(' ')[0]))){
+        results[gm.id]={a:String(ha),b:String(hb)}
+      }
     })
-    if(!r.ok)return null
-    var j=await r.json(),results={}
-    if(!j.response)return null
-    j.response.forEach(function(f){
-      var ha=f.goals.home,hb=f.goals.away
-      if(ha===null||hb===null)return
-      var hn=f.teams.home.name.toLowerCase(),an=f.teams.away.name.toLowerCase()
-      GROUP_MATCHES.forEach(function(gm){
-        var g=GROUPS.find(function(x){return x.name===gm.g})
-        if(!g)return
-        var ta=g.teams[gm.a].n.toLowerCase(),tb=g.teams[gm.b].n.toLowerCase()
-        if((hn.includes(ta.split(' ')[0])||ta.includes(hn.split(' ')[0]))&&(an.includes(tb.split(' ')[0])||tb.includes(an.split(' ')[0]))){
-          results[gm.id]={a:String(ha),b:String(hb)}
-        }
-      })
-    })
-    return results
-  }catch(e){console.error(e);return null}
+  })
+  return results
 }
 
 var R32_PAIRS=[
