@@ -1,6 +1,39 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
+// ── Mapeo equipos API → nuestros nombres ─────────────────────
+// La API usa nombres en inglés, nosotros en español
+const API_TEAM_MAP = {
+  'Mexico':'Mexico','South Africa':'Sudafrica','South Korea':'Corea del Sur','Czech Republic':'Chequia',
+  'Canada':'Canada','Bosnia & Herzegovina':'Bosnia','Qatar':'Qatar','Switzerland':'Suiza',
+  'Brazil':'Brasil','Morocco':'Marruecos','Haiti':'Haiti','Scotland':'Escocia',
+  'USA':'EE.UU.','Paraguay':'Paraguay','Australia':'Australia','Türkiye':'Turquia',
+  'Germany':'Alemania','Ecuador':'Ecuador','Ivory Coast':'Costa de Marfil','Curaçao':'Curazao',
+  'Netherlands':'Paises Bajos','Japan':'Japon','Tunisia':'Tunez','Sweden':'Suecia',
+  'Belgium':'Belgica','Iran':'Iran','Egypt':'Egipto','New Zealand':'Nueva Zelanda',
+  'Spain':'Espana','Uruguay':'Uruguay','Saudi Arabia':'Arabia Saudita','Cape Verde Islands':'Cabo Verde',
+  'France':'Francia','Senegal':'Senegal','Norway':'Noruega','Iraq':'Irak',
+  'Argentina':'Argentina','Algeria':'Argelia','Austria':'Austria','Jordan':'Jordania',
+  'Portugal':'Portugal','Colombia':'Colombia','Uzbekistan':'Uzbekistan','Congo DR':'RD Congo',
+  'England':'Inglaterra','Croatia':'Croacia','Ghana':'Ghana','Panama':'Panama',
+}
+
+// Mapeo inverso: nombre español → código de bandera
+const NAME_TO_FLAG = {
+  'Mexico':'mx','Sudafrica':'za','Corea del Sur':'kr','Chequia':'cz',
+  'Canada':'ca','Bosnia':'ba','Qatar':'qa','Suiza':'ch',
+  'Brasil':'br','Marruecos':'ma','Haiti':'ht','Escocia':'gb-sct',
+  'EE.UU.':'us','Paraguay':'py','Australia':'au','Turquia':'tr',
+  'Alemania':'de','Ecuador':'ec','Costa de Marfil':'ci','Curazao':'cw',
+  'Paises Bajos':'nl','Japon':'jp','Tunez':'tn','Suecia':'se',
+  'Belgica':'be','Iran':'ir','Egipto':'eg','Nueva Zelanda':'nz',
+  'Espana':'es','Uruguay':'uy','Arabia Saudita':'sa','Cabo Verde':'cv',
+  'Francia':'fr','Senegal':'sn','Noruega':'no','Irak':'iq',
+  'Argentina':'ar','Argelia':'dz','Austria':'at','Jordania':'jo',
+  'Portugal':'pt','Colombia':'co','Uzbekistan':'uz','RD Congo':'cd',
+  'Inglaterra':'gb-eng','Croacia':'hr','Ghana':'gh','Panama':'pa',
+}
+
 const GROUPS = [
   {name:'A',teams:[{f:'mx',n:'Mexico'},{f:'za',n:'Sudafrica'},{f:'kr',n:'Corea del Sur'},{f:'cz',n:'Chequia'}]},
   {name:'B',teams:[{f:'ca',n:'Canada'},{f:'ch',n:'Suiza'},{f:'qa',n:'Qatar'},{f:'ba',n:'Bosnia'}]},
@@ -16,7 +49,6 @@ const GROUPS = [
   {name:'L',teams:[{f:'gb-eng',n:'Inglaterra'},{f:'hr',n:'Croacia'},{f:'gh',n:'Ghana'},{f:'pa',n:'Panama'}]},
 ]
 
-// Fuente: FIFA oficial — horario Argentina (UTC-3)
 const GROUP_MATCHES = [
   {id:'gA1',g:'A',a:0,b:1,date:new Date('2026-06-11T16:00:00-03:00')},
   {id:'gA2',g:'A',a:2,b:3,date:new Date('2026-06-11T23:00:00-03:00')},
@@ -102,56 +134,55 @@ const KNOCKOUT_DATES = {
 
 const LOCK_MINS = 20
 const ADMIN = 'Tomy'
-const API_FOOTBALL_KEY = '3347b96febf99d902804fbbdf5b0076d'
 const WC_LEAGUE = 1
 const WC_SEASON = 2026
 
 function isMatchLocked(date) { return new Date() > new Date(date.getTime() - LOCK_MINS*60000) }
 function isRoundLocked(round) { return new Date() > new Date(KNOCKOUT_DATES[round].getTime() - LOCK_MINS*60000) }
-
 function timeLeftStr(date) {
   const diff = new Date(date.getTime() - LOCK_MINS*60000) - new Date()
-  if (diff <= 0) return null
+  if (diff<=0) return null
   const d=Math.floor(diff/86400000),h=Math.floor((diff%86400000)/3600000),m=Math.floor((diff%3600000)/60000)
-  if (d>0) return d+'d '+h+'h'
-  if (h>0) return h+'h '+m+'m'
-  return m+' min'
+  if(d>0)return d+'d '+h+'h'; if(h>0)return h+'h '+m+'m'; return m+' min'
 }
 
 function flag(code) { return 'https://flagcdn.com/24x18/'+code.toLowerCase()+'.png' }
+function teamObj(apiName) {
+  var n = API_TEAM_MAP[apiName]||apiName
+  var f = NAME_TO_FLAG[n]||'un'
+  return {n,f}
+}
 
 function emptyProde() {
   return {groups:{},scores:{},knockoutScores:{r32:{},r16:{},qf:{},sf:{},third:{},final:{}},r32:{},r16:{},qf:{},sf:{},third:{},final:{}}
 }
 
 function calcMatchPoints(pred, real) {
-  if (!pred||!real) return 0
+  if(!pred||!real)return 0
   var pa=parseInt(pred.a),pb=parseInt(pred.b),ra=parseInt(real.a),rb=parseInt(real.b)
-  if (isNaN(pa)||isNaN(pb)||isNaN(ra)||isNaN(rb)) return 0
-  if (pa===ra&&pb===rb) return 2
-  var pw=pa>pb?'a':pa<pb?'b':'e', rw=ra>rb?'a':ra<rb?'b':'e'
+  if(isNaN(pa)||isNaN(pb)||isNaN(ra)||isNaN(rb))return 0
+  if(pa===ra&&pb===rb)return 2
+  var pw=pa>pb?'a':pa<pb?'b':'e',rw=ra>rb?'a':ra<rb?'b':'e'
   return pw===rw?1:0
 }
 
 function calcScore(prode, results) {
-  if (!prode) return 0
+  if(!prode)return 0
   var pts=0; results=results||{}
-  // Grupos: 1pt ganador, 2pt exacto
-  GROUP_MATCHES.forEach(function(m){ pts+=calcMatchPoints(prode.scores&&prode.scores[m.id], results[m.id]) })
-  // Eliminatorias: pts base ganador, doble exacto
+  GROUP_MATCHES.forEach(function(m){ pts+=calcMatchPoints(prode.scores&&prode.scores[m.id],results[m.id]) })
   var rounds=[{k:'r32',p:1},{k:'r16',p:2},{k:'qf',p:3},{k:'sf',p:4},{k:'final',p:5}]
   rounds.forEach(function(r){
-    var rd=prode[r.k]||{}, ks=prode.knockoutScores&&prode.knockoutScores[r.k]||{}
+    var rd=prode[r.k]||{},ks=prode.knockoutScores&&prode.knockoutScores[r.k]||{}
     Object.keys(rd).forEach(function(id){
-      var pred=rd[id], real=results[id], realScore=results[id+'_score']
-      if (!pred||!real) return
-      if (pred.n!==real.n) return
-      var predSc=ks[id], exacto=false
-      if (predSc&&realScore) {
+      var pred=rd[id],real=results[id],realScore=results[id+'_score']
+      if(!pred||!real)return
+      if(pred.n!==real.n)return
+      var predSc=ks[id],exacto=false
+      if(predSc&&realScore){
         var pa=parseInt(predSc.a),pb=parseInt(predSc.b),ra=parseInt(realScore.a),rb=parseInt(realScore.b)
-        if (!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb) exacto=true
+        if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)exacto=true
       }
-      pts += exacto ? r.p*2 : r.p
+      pts+=exacto?r.p*2:r.p
     })
   })
   return pts
@@ -170,39 +201,22 @@ function sTab(a){return{flex:1,padding:'8px 2px',border:'none',borderRadius:'8px
 function sTeamRow(sel){return{display:'flex',alignItems:'center',gap:'6px',padding:'6px 8px',cursor:'pointer',fontSize:'12px',borderBottom:'1px solid '+C.border,background:sel===1?'#fff8e1':sel===2?'#e8f5e9':'#fff',borderLeft:sel===1?'3px solid '+C.gold:sel===2?'3px solid '+C.green:'3px solid transparent'}}
 function sMatchTeam(w){return{display:'flex',alignItems:'center',gap:'8px',padding:'7px 10px',cursor:'pointer',fontSize:'13px',borderBottom:'1px solid '+C.border,background:w?'#e3f0fb':'#fff',borderLeft:w?'4px solid '+C.blue:'4px solid transparent',fontWeight:w?600:400}}
 
+// ── Supabase ──────────────────────────────────────────────────
 async function dbGetAll(){var r=await supabase.from('prodes').select('*').order('updated_at',{ascending:false});return r.error?[]:r.data}
 async function dbUpsert(name,prode){var r=await supabase.from('prodes').upsert({player_name:name,prode,updated_at:new Date().toISOString()},{onConflict:'player_name'});if(r.error)console.error(r.error)}
 async function dbGetOne(name){var r=await supabase.from('prodes').select('*').eq('player_name',name).single();return r.error?null:r.data}
 async function dbGetResults(){var r=await supabase.from('results').select('*').eq('id','main').single();return r.error?{}:r.data?r.data.data:{}}
 async function dbSaveResults(data){var r=await supabase.from('results').upsert({id:'main',data,updated_at:new Date().toISOString()},{onConflict:'id'});if(r.error)console.error(r.error)}
 
-async function apiFootball(endpoint){
+// ── API Football proxy ────────────────────────────────────────
+async function apiCall(endpoint){
   try{
     var r=await fetch('/api/football?endpoint='+encodeURIComponent(endpoint))
     if(!r.ok)return null
     var j=await r.json()
+    if(j.errors&&Object.keys(j.errors).length>0){console.error('API error:',j.errors);return null}
     return j.response||null
   }catch(e){console.error(e);return null}
-}
-
-async function fetchLiveMatches(){
-  var data=await apiFootball('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON)
-  if(!data)return null
-  return data.map(function(f){
-    return{
-      id:f.fixture.id,
-      utcDate:f.fixture.date,
-      status:mapStatus(f.fixture.status.short),
-      stage:f.league.round,
-      venue:f.fixture.venue.name,
-      homeTeam:{name:f.teams.home.name,crest:f.teams.home.logo},
-      awayTeam:{name:f.teams.away.name,crest:f.teams.away.logo},
-      score:{
-        fullTime:{home:f.goals.home,away:f.goals.away},
-        halfTime:{home:f.score.halftime.home,away:f.score.halftime.away}
-      }
-    }
-  })
 }
 
 function mapStatus(s){
@@ -213,19 +227,22 @@ function mapStatus(s){
   return 'TIMED'
 }
 
-async function fetchLiveResults(){
-  var data=await apiFootball('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&status=FT')
-  if(!data)return null
+// Trae resultados de grupos terminados y los mapea a nuestros IDs
+async function fetchGroupResults(){
+  var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&status=FT')
+  if(!data)return{}
   var results={}
   data.forEach(function(f){
     var ha=f.goals.home,hb=f.goals.away
     if(ha===null||hb===null)return
-    var hn=f.teams.home.name.toLowerCase(),an=f.teams.away.name.toLowerCase()
+    var homeApiName=f.teams.home.name, awayApiName=f.teams.away.name
+    var homeName=API_TEAM_MAP[homeApiName]||homeApiName
+    var awayName=API_TEAM_MAP[awayApiName]||awayApiName
     GROUP_MATCHES.forEach(function(gm){
       var g=GROUPS.find(function(x){return x.name===gm.g})
       if(!g)return
-      var ta=g.teams[gm.a].n.toLowerCase(),tb=g.teams[gm.b].n.toLowerCase()
-      if((hn.includes(ta.split(' ')[0])||ta.includes(hn.split(' ')[0]))&&(an.includes(tb.split(' ')[0])||tb.includes(an.split(' ')[0]))){
+      var ta=g.teams[gm.a].n,tb=g.teams[gm.b].n
+      if(homeName===ta&&awayName===tb){
         results[gm.id]={a:String(ha),b:String(hb)}
       }
     })
@@ -233,32 +250,58 @@ async function fetchLiveResults(){
   return results
 }
 
-var R32_PAIRS=[
-  [{g:'A',p:1},{g:'B',p:2}],[{g:'C',p:1},{g:'D',p:2}],
-  [{g:'E',p:1},{g:'F',p:2}],[{g:'G',p:1},{g:'H',p:2}],
-  [{g:'I',p:1},{g:'J',p:2}],[{g:'K',p:1},{g:'L',p:2}],
-  [{g:'B',p:1},{g:'A',p:2}],[{g:'D',p:1},{g:'C',p:2}],
-  [{g:'F',p:1},{g:'E',p:2}],[{g:'H',p:1},{g:'G',p:2}],
-  [{g:'J',p:1},{g:'I',p:2}],[{g:'L',p:1},{g:'K',p:2}],
-  [null,null],[null,null],[null,null],[null,null],
-]
-var ROUND_COUNTS={r32:16,r16:8,qf:4,sf:2}
-var ROUND_LABELS={r32:'Partido',r16:'Octavo',qf:'Cuarto',sf:'Semifinal'}
+// Trae standings y arma clasificados reales por grupo
+async function fetchRealStandings(){
+  var data=await apiCall('standings?league='+WC_LEAGUE+'&season='+WC_SEASON)
+  if(!data||!data[0])return null
+  var standings=data[0].league.standings
+  var classified={} // {A:{1:{n,f},2:{n,f}}, B:{...}, ...}
+  var thirds=[] // Lista de mejores terceros
 
-function getGroupQualified(prode,gName,pos){
-  var g=GROUPS.find(function(x){return x.name===gName})
-  if(!g)return null
-  var idx=g.teams.findIndex(function(_,i){return prode.groups[gName+'_'+i]===pos})
-  return idx<0?null:g.teams[idx]
-}
-function getMatchTeams(prode,round,idx){
-  if(round==='r32'){var pair=R32_PAIRS[idx];if(!pair[0])return[null,null];return[getGroupQualified(prode,pair[0].g,pair[0].p),getGroupQualified(prode,pair[1].g,pair[1].p)]}
-  if(round==='r16')return[prode.r32['r32_'+(idx*2)]||null,prode.r32['r32_'+(idx*2+1)]||null]
-  if(round==='qf')return[prode.r16['r16_'+(idx*2)]||null,prode.r16['r16_'+(idx*2+1)]||null]
-  if(round==='sf')return[prode.qf['qf_'+(idx*2)]||null,prode.qf['qf_'+(idx*2+1)]||null]
-  return[null,null]
+  standings.forEach(function(group){
+    if(!group||!group[0])return
+    var groupName=group[0].group
+    if(groupName==='Ranking of third-placed teams'){
+      // Top 8 terceros
+      group.slice(0,8).forEach(function(t){
+        var n=API_TEAM_MAP[t.team.name]||t.team.name
+        thirds.push({n,f:NAME_TO_FLAG[n]||'un',pts:t.points,gd:t.goalsDiff,gf:t.all.goals.for,rank:t.rank})
+      })
+      return
+    }
+    // Extraer letra del grupo (ej: "Group A" → "A")
+    var letter=groupName.replace('Group ','').trim()
+    classified[letter]={}
+    group.forEach(function(t){
+      var n=API_TEAM_MAP[t.team.name]||t.team.name
+      classified[letter][t.rank]={n,f:NAME_TO_FLAG[n]||'un',logo:t.team.logo}
+    })
+  })
+
+  return{classified,thirds}
 }
 
+// Trae fixtures de eliminatorias y extrae resultados
+async function fetchKnockoutResults(round){
+  var roundMap={
+    r32:'Round of 32',r16:'Round of 16',
+    qf:'Quarter-finals',sf:'Semi-finals',final:'Final'
+  }
+  var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&round='+encodeURIComponent(roundMap[round])+'&status=FT')
+  if(!data)return{}
+  var results={}
+  data.forEach(function(f,i){
+    var ha=f.goals.home,hb=f.goals.away
+    if(ha===null||hb===null)return
+    var id=round+'_'+i
+    var winner=f.teams.home.winner?teamObj(f.teams.home.name):teamObj(f.teams.away.name)
+    results[id]=winner
+    results[id+'_score']={a:String(ha),b:String(hb)}
+  })
+  return results
+}
+
+// ── App principal ─────────────────────────────────────────────
 export default function App(){
   var [screen,setScreen]=useState('home')
   var [currentPlayer,setPlayer]=useState(null)
@@ -267,6 +310,7 @@ export default function App(){
   var [passInput,setPassInput]=useState('')
   var [players,setPlayers]=useState([])
   var [results,setResults]=useState({})
+  var [realStandings,setRealStandings]=useState(null) // clasificados reales de la API
   var [loading,setLoading]=useState(false)
   var [saving,setSaving]=useState(false)
   var [activeTab,setActiveTab]=useState('groups')
@@ -274,22 +318,37 @@ export default function App(){
 
   useEffect(function(){
     fetchAll()
-    var t=setInterval(function(){syncLiveResults()},5*60*1000)
+    var t=setInterval(syncAll,5*60*1000)
     return function(){clearInterval(t)}
   },[])
 
   async function fetchAll(){
     setLoading(true)
     var rows=await dbGetAll(),res=await dbGetResults()
-    setPlayers(rows);setResults(res);setLoading(false)
+    setPlayers(rows);setResults(res)
+    // Cargar standings reales
+    if(res.real_standings){setRealStandings(res.real_standings)}
+    setLoading(false)
   }
 
-  async function syncLiveResults(){
-    var lr=await fetchLiveResults()
-    if(lr&&Object.keys(lr).length>0){
-      var cur=await dbGetResults(),merged=Object.assign({},cur,lr)
-      await dbSaveResults(merged);setResults(merged)
+  async function syncAll(){
+    // 1. Resultados de grupos
+    var groupRes=await fetchGroupResults()
+    // 2. Standings reales
+    var standings=await fetchRealStandings()
+    // 3. Resultados de eliminatorias
+    var koResults={}
+    var rounds=['r32','r16','qf','sf','final']
+    for(var i=0;i<rounds.length;i++){
+      var kr=await fetchKnockoutResults(rounds[i])
+      Object.assign(koResults,kr)
     }
+    // Guardar todo junto
+    var cur=await dbGetResults()
+    var merged=Object.assign({},cur,groupRes,koResults)
+    if(standings){merged.real_standings=standings;setRealStandings(standings)}
+    await dbSaveResults(merged)
+    setResults(merged)
   }
 
   async function handleJoin(){
@@ -308,7 +367,7 @@ export default function App(){
   async function saveResults(newResults){setResults(newResults);await dbSaveResults(newResults);fetchAll()}
 
   if(screen==='live')return <LiveScreen setScreen={setScreen}/>
-  if(screen==='admin')return <AdminPanel players={players} results={results} saveResults={saveResults} setScreen={setScreen} fetchAll={fetchAll}/>
+  if(screen==='admin')return <AdminPanel players={players} results={results} saveResults={saveResults} setScreen={setScreen} fetchAll={fetchAll} syncAll={syncAll}/>
 
   if(screen==='view'){
     return(
@@ -320,7 +379,7 @@ export default function App(){
             <button onClick={function(){setScreen('home')}} style={{background:'rgba(255,255,255,.2)',color:'#fff',border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontSize:12}}>Volver</button>
           </div>
         </div>
-        <ProdeView prode={prode} results={results} readonly={true} activeTab={activeTab} setActiveTab={setActiveTab}/>
+        <ProdeView prode={prode} results={results} realStandings={realStandings} readonly={true} activeTab={activeTab} setActiveTab={setActiveTab}/>
         <div style={{textAlign:'center',marginTop:10,padding:'10px',background:'#f9f9f9',borderRadius:10}}>
           <div style={{fontSize:13,color:C.gray}}>Puntaje</div>
           <div style={{fontSize:28,fontWeight:700,color:C.blue}}>{calcScore(prode,results)} pts</div>
@@ -343,7 +402,7 @@ export default function App(){
           </div>
         </div>
         {champ&&<div style={{textAlign:'center',padding:'10px',background:'linear-gradient(135deg,rgba(192,57,43,.1),rgba(21,101,192,.1))',borderRadius:12,marginBottom:8,border:'2px solid '+C.gold}}><img src={flag(champ.f)} alt={champ.n} style={{verticalAlign:'middle',marginRight:8}}/><span style={{fontSize:15,fontWeight:700,color:C.blue}}>{champ.n} - CAMPEON!</span></div>}
-        <ProdeView prode={prode} results={results} readonly={false} setProde={saveProde} activeTab={activeTab} setActiveTab={setActiveTab}/>
+        <ProdeView prode={prode} results={results} realStandings={realStandings} readonly={false} setProde={saveProde} activeTab={activeTab} setActiveTab={setActiveTab}/>
         <div style={{textAlign:'center',marginTop:10,padding:'10px',background:'#f9f9f9',borderRadius:10}}>
           <div style={{fontSize:13,color:C.gray}}>Tu puntaje</div>
           <div style={{fontSize:28,fontWeight:700,color:C.blue}}>{calcScore(prode,results)} pts</div>
@@ -389,24 +448,27 @@ export default function App(){
   )
 }
 
+// ── ProdeView ─────────────────────────────────────────────────
 function ProdeView(props){
-  var prode=props.prode,results=props.results,readonly=props.readonly,setProde=props.setProde,activeTab=props.activeTab,setActiveTab=props.setActiveTab
+  var prode=props.prode,results=props.results,realStandings=props.realStandings
+  var readonly=props.readonly,setProde=props.setProde,activeTab=props.activeTab,setActiveTab=props.setActiveTab
   var tabs=[{id:'groups',label:'Grupos'},{id:'r32',label:'16avos'},{id:'r16',label:'Octavos'},{id:'qf',label:'Cuartos'},{id:'sf',label:'Semis'},{id:'final',label:'Final'}]
   return(
     <div>
       <div style={{display:'flex',gap:2}}>{tabs.map(function(t){return <button key={t.id} style={sTab(activeTab===t.id)} onClick={function(){setActiveTab(t.id)}}>{t.label}</button>})}</div>
       <div style={{background:'#fff',border:'1px solid '+C.border,borderRadius:'0 0 10px 10px',padding:'10px 8px'}}>
-        {activeTab==='groups'&&<GroupsTab prode={prode} setProde={setProde} readonly={readonly}/>}
-        {activeTab==='r32'&&<KnockoutTab round='r32' prode={prode} setProde={setProde} readonly={readonly}/>}
-        {activeTab==='r16'&&<KnockoutTab round='r16' prode={prode} setProde={setProde} readonly={readonly}/>}
-        {activeTab==='qf'&&<KnockoutTab round='qf' prode={prode} setProde={setProde} readonly={readonly}/>}
-        {activeTab==='sf'&&<KnockoutTab round='sf' prode={prode} setProde={setProde} readonly={readonly}/>}
-        {activeTab==='final'&&<FinalTab prode={prode} setProde={setProde} readonly={readonly}/>}
+        {activeTab==='groups'&&<GroupsTab prode={prode} setProde={setProde} readonly={readonly} results={results}/>}
+        {activeTab==='r32'&&<KnockoutTab round='r32' prode={prode} setProde={setProde} readonly={readonly} realStandings={realStandings}/>}
+        {activeTab==='r16'&&<KnockoutTab round='r16' prode={prode} setProde={setProde} readonly={readonly} realStandings={realStandings}/>}
+        {activeTab==='qf'&&<KnockoutTab round='qf' prode={prode} setProde={setProde} readonly={readonly} realStandings={realStandings}/>}
+        {activeTab==='sf'&&<KnockoutTab round='sf' prode={prode} setProde={setProde} readonly={readonly} realStandings={realStandings}/>}
+        {activeTab==='final'&&<FinalTab prode={prode} setProde={setProde} readonly={readonly} realStandings={realStandings}/>}
       </div>
     </div>
   )
 }
 
+// ── Groups Tab ────────────────────────────────────────────────
 function GroupsTab(props){
   var prode=props.prode,setProde=props.setProde,readonly=props.readonly
   function toggleGroup(gName,idx){
@@ -425,7 +487,7 @@ function GroupsTab(props){
   }
   return(
     <div>
-      <div style={{fontSize:11,color:C.gray,marginBottom:8}}>Clasificados: {Object.keys(prode.groups).length}/48 | Toca para elegir 1ro (dorado) o 2do (verde)</div>
+      <div style={{fontSize:11,color:C.gray,marginBottom:8}}>Clasificados: {Object.keys(prode.groups).length}/48 | Toca para elegir 1ro y 2do de cada grupo</div>
       {GROUPS.map(function(g){
         var gMatches=GROUP_MATCHES.filter(function(m){return m.g===g.name})
         return(
@@ -468,8 +530,59 @@ function GroupsTab(props){
   )
 }
 
+// ── Knockout Tab ──────────────────────────────────────────────
+// Los equipos vienen de realStandings (clasificados reales de la API)
+// El jugador pronostica ganador y marcador
+// Los ganadores pronosticados arman el bracket siguiente
+
+var ROUND_32_PAIRS = [
+  // [grupo_1ro, grupo_2do] — cruces oficiales del Mundial 2026
+  ['A',1,'B',2],['C',1,'D',2],['E',1,'F',2],['G',1,'H',2],
+  ['I',1,'J',2],['K',1,'L',2],
+  ['B',1,'A',2],['D',1,'C',2],
+  ['F',1,'E',2],['H',1,'G',2],
+  ['J',1,'I',2],['L',1,'K',2],
+  // 4 partidos de mejores terceros (se arman cuando termine la fase de grupos)
+  ['3rd',0,'3rd',1],['3rd',2,'3rd',3],['3rd',4,'3rd',5],['3rd',6,'3rd',7],
+]
+var ROUND_COUNTS={r32:16,r16:8,qf:4,sf:2}
+var ROUND_LABELS={r32:'Partido',r16:'Octavo',qf:'Cuarto',sf:'Semifinal'}
+
+function getTeamsForMatch(round, idx, prode, realStandings){
+  // Usa clasificados REALES si están disponibles, si no usa los del pronóstico del jugador
+  function getClassified(g, pos){
+    if(realStandings&&realStandings.classified&&realStandings.classified[g]&&realStandings.classified[g][pos]){
+      return realStandings.classified[g][pos]
+    }
+    // Fallback: pronóstico del jugador
+    var group=GROUPS.find(function(x){return x.name===g})
+    if(!group)return null
+    var i=group.teams.findIndex(function(_,i){return prode.groups[g+'_'+i]===pos})
+    return i<0?null:group.teams[i]
+  }
+  function get3rd(idx){
+    if(realStandings&&realStandings.thirds&&realStandings.thirds[idx]){
+      return realStandings.thirds[idx]
+    }
+    return null
+  }
+
+  if(round==='r32'){
+    var pair=ROUND_32_PAIRS[idx]
+    if(!pair)return[null,null]
+    if(pair[0]==='3rd'&&pair[2]==='3rd'){
+      return[get3rd(pair[1]),get3rd(pair[3])]
+    }
+    return[getClassified(pair[0],pair[1]),getClassified(pair[2],pair[3])]
+  }
+  if(round==='r16')return[prode.r32['r32_'+(idx*2)]||null,prode.r32['r32_'+(idx*2+1)]||null]
+  if(round==='qf')return[prode.r16['r16_'+(idx*2)]||null,prode.r16['r16_'+(idx*2+1)]||null]
+  if(round==='sf')return[prode.qf['qf_'+(idx*2)]||null,prode.qf['qf_'+(idx*2+1)]||null]
+  return[null,null]
+}
+
 function KnockoutTab(props){
-  var round=props.round,prode=props.prode,setProde=props.setProde,readonly=props.readonly
+  var round=props.round,prode=props.prode,setProde=props.setProde,readonly=props.readonly,realStandings=props.realStandings
   var locked=isRoundLocked(round),tl=timeLeftStr(KNOCKOUT_DATES[round]),count=ROUND_COUNTS[round],items=[]
 
   function setKnockoutScore(id,side,val){
@@ -481,7 +594,9 @@ function KnockoutTab(props){
 
   for(var i=0;i<count;i++){
     (function(idx){
-      var id=round+'_'+idx,teams=getMatchTeams(prode,round,idx),ta=teams[0],tb=teams[1],w=prode[round][id]||null
+      var id=round+'_'+idx
+      var teams=getTeamsForMatch(round,idx,prode,realStandings)
+      var ta=teams[0],tb=teams[1],w=prode[round][id]||null
       var sc=(prode.knockoutScores&&prode.knockoutScores[round]&&prode.knockoutScores[round][id])||null
       items.push(<div key={id} style={Object.assign({},sCard,{marginBottom:8})}>
         <div style={{background:C.red,color:'#fff',fontSize:11,textAlign:'center',padding:'3px'}}>{ROUND_LABELS[round]} {idx+1}</div>
@@ -505,9 +620,18 @@ function KnockoutTab(props){
       </div>)
     })(i)
   }
-  return(<div><div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>{locked?<span style={sLock}>Cerrado</span>:(tl&&<span style={{color:C.gold,fontSize:12,fontWeight:500}}>{tl} para el cierre</span>)}</div>{items}</div>)
+  return(
+    <div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+        {locked?<span style={sLock}>Cerrado</span>:(tl?<span style={{color:C.gold,fontSize:12,fontWeight:500}}>{tl} para el cierre</span>:<span/>)}
+        {realStandings?<span style={{fontSize:11,color:C.green}}>✅ Bracket con datos reales</span>:<span style={{fontSize:11,color:C.gold}}>⏳ Usando pronósticos</span>}
+      </div>
+      {items}
+    </div>
+  )
 }
 
+// ── Final Tab ─────────────────────────────────────────────────
 function FinalTab(props){
   var prode=props.prode,setProde=props.setProde,readonly=props.readonly
   var locked=isRoundLocked('final'),tl=timeLeftStr(KNOCKOUT_DATES.final)
@@ -526,14 +650,12 @@ function FinalTab(props){
     fn.final_m=Object.assign({},fn.final_m||{a:'',b:''},{[side]:val})
     ks.final=fn;setProde(Object.assign({},prode,{knockoutScores:ks}))
   }
-
   function MRow(t,id,field,w){
     var isW=w&&t&&w.n===t.n
     return(<div style={Object.assign({},sMatchTeam(isW),{cursor:(locked||!t||readonly)?'default':'pointer'})} onClick={function(){if(t&&!locked&&!readonly)pick(id,t,field)}}>
       {t?<><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}}/><span style={{flex:1}}>{t.n}</span>{isW&&<span style={{color:C.blue,fontSize:11}}>✓</span>}</>:<span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}
     </div>)
   }
-
   return(
     <div>
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>{locked?<span style={sLock}>Cerrado</span>:(tl&&<span style={{color:C.gold,fontSize:12,fontWeight:500}}>{tl} para el cierre</span>)}</div>
@@ -565,14 +687,27 @@ function FinalTab(props){
   )
 }
 
+// ── Admin Panel ───────────────────────────────────────────────
 function AdminPanel(props){
-  var players=props.players,results=props.results,saveResults=props.saveResults,setScreen=props.setScreen,fetchAll=props.fetchAll
+  var players=props.players,results=props.results,saveResults=props.saveResults
+  var setScreen=props.setScreen,fetchAll=props.fetchAll,syncAll=props.syncAll
   var [localResults,setLocalResults]=useState(results)
   var [activeTab,setActiveTab]=useState('ranking')
   var [saving,setSaving]=useState(false)
   var sorted=[...players].sort(function(a,b){return calcScore(b.prode,results)-calcScore(a.prode,results)})
+
   async function handleSave(){setSaving(true);await saveResults(localResults);setSaving(false)}
-  function setResult(matchId,side,val){var cur=localResults[matchId]||{a:'',b:''};setLocalResults(Object.assign({},localResults,{[matchId]:Object.assign({},cur,{[side]:val})}))}
+  async function handleSync(){
+    setSaving(true)
+    await syncAll()
+    alert('Sincronizado correctamente!')
+    setSaving(false)
+  }
+  function setResult(matchId,side,val){
+    var cur=localResults[matchId]||{a:'',b:''}
+    setLocalResults(Object.assign({},localResults,{[matchId]:Object.assign({},cur,{[side]:val})}))
+  }
+
   return(
     <div style={{maxWidth:600,margin:'0 auto',padding:'8px'}}>
       <div style={sHeader}>
@@ -586,6 +721,7 @@ function AdminPanel(props){
         {['ranking','resultados','jugadores'].map(function(t){return <button key={t} style={sTab(activeTab===t)} onClick={function(){setActiveTab(t)}}>{t.charAt(0).toUpperCase()+t.slice(1)}</button>})}
       </div>
       <div style={{background:'#fff',border:'1px solid '+C.border,borderRadius:'0 0 10px 10px',padding:'12px'}}>
+
         {activeTab==='ranking'&&(
           <div>
             <div style={{fontSize:14,fontWeight:500,color:C.blue,marginBottom:10}}>Ranking ({players.length} jugadores)</div>
@@ -598,6 +734,7 @@ function AdminPanel(props){
             )})}
           </div>
         )}
+
         {activeTab==='jugadores'&&(
           <div>
             <div style={{fontSize:14,fontWeight:500,color:C.blue,marginBottom:10}}>Gestionar jugadores</div>
@@ -611,11 +748,26 @@ function AdminPanel(props){
             <button onClick={async function(){if(!window.confirm('Borrar TODOS los jugadores?'))return;await supabase.from('prodes').delete().neq('player_name',ADMIN);fetchAll()}} style={sBtn(C.red,{marginTop:16})}>Borrar todos los jugadores</button>
           </div>
         )}
+
         {activeTab==='resultados'&&(
           <div>
-            <div style={{fontSize:14,fontWeight:500,color:C.blue,marginBottom:6}}>Cargar resultados</div>
-            <div style={{fontSize:12,color:C.gray,marginBottom:6}}>Se sincronizan automaticamente. En penales ingresa resultado del tiempo reglamentario.</div>
-            <button onClick={async function(){setSaving(true);var lr=await fetchLiveResults();if(lr){var cur=await dbGetResults(),merged=Object.assign({},cur,lr);await saveResults(merged);alert('Sincronizado!')}else{alert('Error al conectar')}setSaving(false)}} style={sBtn(C.green,{marginBottom:12})} disabled={saving}>{saving?'Sincronizando...':'Sincronizar ahora'}</button>
+            <div style={{fontSize:14,fontWeight:500,color:C.blue,marginBottom:6}}>Resultados y standings</div>
+            <div style={{fontSize:12,color:C.gray,marginBottom:8}}>Se sincronizan automaticamente cada 5 minutos. Incluye grupos, standings y eliminatorias.</div>
+            <button onClick={handleSync} style={sBtn(C.green,{marginBottom:12})} disabled={saving}>{saving?'Sincronizando...':'Sincronizar todo ahora'}</button>
+
+            {results.real_standings&&(
+              <div style={{background:'#eafff0',border:'1px solid '+C.green,borderRadius:8,padding:'10px',marginBottom:12,fontSize:12}}>
+                <div style={{fontWeight:600,color:C.green,marginBottom:6}}>✅ Standings reales cargados</div>
+                {Object.keys(results.real_standings.classified||{}).sort().map(function(g){
+                  var c=results.real_standings.classified[g]
+                  return(<div key={g} style={{marginBottom:2}}>
+                    <span style={{fontWeight:500}}>Grupo {g}:</span> {c[1]&&c[1].n} (1ro) · {c[2]&&c[2].n} (2do)
+                  </div>)
+                })}
+              </div>
+            )}
+
+            <div style={{fontSize:13,fontWeight:500,color:C.blue,marginBottom:8}}>Cargar manualmente (backup)</div>
             {GROUPS.map(function(g){
               var gMatches=GROUP_MATCHES.filter(function(m){return m.g===g.name})
               return(<div key={g.name} style={{marginBottom:12}}>
@@ -634,7 +786,7 @@ function AdminPanel(props){
                 })}
               </div>)
             })}
-            <button style={sBtn(C.green)} onClick={handleSave} disabled={saving}>{saving?'Guardando...':'Guardar resultados'}</button>
+            <button style={sBtn(C.green)} onClick={handleSave} disabled={saving}>{saving?'Guardando...':'Guardar resultados manuales'}</button>
           </div>
         )}
       </div>
@@ -642,11 +794,31 @@ function AdminPanel(props){
   )
 }
 
+// ── Live Screen ───────────────────────────────────────────────
 function LiveScreen(props){
   var setScreen=props.setScreen
   var [matches,setMatches]=useState(null),[loading,setLoading]=useState(true),[lastUpdate,setLastUpdate]=useState(null),[filter,setFilter]=useState('hoy')
-  async function load(){setLoading(true);var data=await fetchLiveMatches();setMatches(data);setLastUpdate(new Date());setLoading(false)}
+
+  async function load(){
+    setLoading(true)
+    var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON)
+    if(data){
+      setMatches(data.map(function(f){
+        return{
+          id:f.fixture.id,utcDate:f.fixture.date,
+          status:mapStatus(f.fixture.status.short),
+          stage:f.league.round,venue:f.fixture.venue.name,
+          homeTeam:{name:f.teams.home.name,crest:f.teams.home.logo},
+          awayTeam:{name:f.teams.away.name,crest:f.teams.away.logo},
+          score:{fullTime:{home:f.goals.home,away:f.goals.away},halfTime:{home:f.score.halftime.home,away:f.score.halftime.away}}
+        }
+      }))
+    }
+    setLastUpdate(new Date());setLoading(false)
+  }
+
   useEffect(function(){load();var t=setInterval(load,60000);return function(){clearInterval(t)}},[])
+
   function statusLabel(m){
     var s=m.status
     if(s==='FINISHED')return{text:'Finalizado',color:C.gray}
@@ -655,6 +827,7 @@ function LiveScreen(props){
     var d=new Date(m.utcDate);return{text:d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})+' hs',color:C.blue}
   }
   function getScore(m){if(m.status==='SCHEDULED'||m.status==='TIMED')return null;var s=m.score.fullTime;if(s.home===null)s=m.score.halfTime;return s}
+
   var now=new Date(),todayStr=now.toDateString()
   var filtered=!matches?[]:matches.filter(function(m){
     var md=new Date(m.utcDate)
@@ -664,7 +837,9 @@ function LiveScreen(props){
     if(filter==='finalizados')return m.status==='FINISHED'
     return true
   }).sort(function(a,b){return new Date(a.utcDate)-new Date(b.utcDate)})
+
   var filterBtns=[{id:'hoy',label:'Hoy'},{id:'vivo',label:'En Vivo'},{id:'proximos',label:'Proximos'},{id:'finalizados',label:'Finalizados'},{id:'todos',label:'Todos'}]
+
   return(
     <div style={{maxWidth:480,margin:'0 auto',padding:'8px'}}>
       <div style={sHeader}>
@@ -687,19 +862,19 @@ function LiveScreen(props){
           <div style={{padding:'10px 12px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
               <span style={{fontSize:11,color:sl.color,fontWeight:600}}>{sl.text}</span>
-              <span style={{fontSize:11,color:C.gray}}>{m.stage&&m.stage.replace(/_/g,' ')}</span>
+              <span style={{fontSize:11,color:C.gray}}>{m.stage}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               <div style={{flex:1,textAlign:'right'}}>
                 <div style={{fontSize:14,fontWeight:isFinished||isLive?700:400}}>{m.homeTeam.name}</div>
-                {m.homeTeam.crest&&<img src={m.homeTeam.crest} alt="" style={{width:24,height:24,objectFit:'contain',marginTop:4}}/>}
+                {m.homeTeam.crest&&<img src={m.homeTeam.crest} alt="" style={{width:28,height:28,objectFit:'contain',marginTop:4}}/>}
               </div>
               <div style={{minWidth:70,textAlign:'center'}}>
                 {sc?<div style={{fontSize:24,fontWeight:700,color:isLive?C.red:isFinished?C.blue:'#333'}}>{sc.home} - {sc.away}</div>:<div style={{fontSize:13,color:C.gray}}>{md.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})}</div>}
               </div>
               <div style={{flex:1,textAlign:'left'}}>
                 <div style={{fontSize:14,fontWeight:isFinished||isLive?700:400}}>{m.awayTeam.name}</div>
-                {m.awayTeam.crest&&<img src={m.awayTeam.crest} alt="" style={{width:24,height:24,objectFit:'contain',marginTop:4}}/>}
+                {m.awayTeam.crest&&<img src={m.awayTeam.crest} alt="" style={{width:28,height:28,objectFit:'contain',marginTop:4}}/>}
               </div>
             </div>
             {m.venue&&<div style={{fontSize:11,color:C.gray,textAlign:'center',marginTop:6}}>{m.venue}</div>}
