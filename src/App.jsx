@@ -170,7 +170,7 @@ function calcScore(prode, results) {
   if(!prode)return 0
   var pts=0; results=results||{}
   GROUP_MATCHES.forEach(function(m){ pts+=calcMatchPoints(prode.scores&&prode.scores[m.id],results[m.id]) })
-  var rounds=[{k:'r32',p:1},{k:'r16',p:2},{k:'qf',p:3},{k:'sf',p:4},{k:'final',p:5}]
+  var rounds=[{k:'r32',p:1},{k:'r16',p:2},{k:'qf',p:3},{k:'sf',p:3},{k:'final',p:3}]
   rounds.forEach(function(r){
     var rd=prode[r.k]||{},ks=prode.knockoutScores&&prode.knockoutScores[r.k]||{}
     Object.keys(rd).forEach(function(id){
