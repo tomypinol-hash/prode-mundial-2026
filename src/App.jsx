@@ -157,6 +157,53 @@ function emptyProde() {
   return {groups:{},scores:{},knockoutScores:{r32:{},r16:{},qf:{},sf:{},third:{},final:{}},r32:{},r16:{},qf:{},sf:{},third:{},final:{}}
 }
 
+// Calcula la tabla de posiciones de un grupo basándose en los marcadores pronosticados
+function calcGroupTable(gName, scores) {
+  var g = GROUPS.find(function(x){return x.name===gName})
+  if(!g) return []
+  var gMatches = GROUP_MATCHES.filter(function(m){return m.g===gName})
+  
+  // Inicializar tabla
+  var table = g.teams.map(function(t,i){
+    return {idx:i, n:t.n, f:t.f, pts:0, gf:0, ga:0, gd:0, played:0}
+  })
+  
+  // Procesar cada partido
+  gMatches.forEach(function(m){
+    var sc = scores && scores[m.id]
+    if(!sc || sc.a==='' || sc.b==='') return
+    var ga = parseInt(sc.a), gb = parseInt(sc.b)
+    if(isNaN(ga)||isNaN(gb)) return
+    
+    var teamA = table[m.a], teamB = table[m.b]
+    teamA.gf+=ga; teamA.ga+=gb; teamA.gd+=ga-gb; teamA.played++
+    teamB.gf+=gb; teamB.ga+=ga; teamB.gd+=gb-ga; teamB.played++
+    
+    if(ga>gb){ teamA.pts+=3 }
+    else if(ga<gb){ teamB.pts+=3 }
+    else { teamA.pts+=1; teamB.pts+=1 }
+  })
+  
+  // Ordenar: pts desc, gd desc, gf desc
+  table.sort(function(a,b){
+    if(b.pts!==a.pts) return b.pts-a.pts
+    if(b.gd!==a.gd) return b.gd-a.gd
+    return b.gf-a.gf
+  })
+  
+  return table
+}
+
+// Obtiene el clasificado de un grupo en una posición (1 o 2) basado en marcadores
+function getClassifiedFromScores(prode, gName, pos) {
+  var table = calcGroupTable(gName, prode.scores)
+  if(!table||table.length<pos) return null
+  var t = table[pos-1]
+  if(t.played===0) return null // Sin partidos jugados aún
+  var g = GROUPS.find(function(x){return x.name===gName})
+  return g.teams[t.idx]
+}
+
 function calcMatchPoints(pred, real) {
   if(!pred||!real)return 0
   var pa=parseInt(pred.a),pb=parseInt(pred.b),ra=parseInt(real.a),rb=parseInt(real.b)
@@ -471,44 +518,48 @@ function ProdeView(props){
 // ── Groups Tab ────────────────────────────────────────────────
 function GroupsTab(props){
   var prode=props.prode,setProde=props.setProde,readonly=props.readonly
-  function toggleGroup(gName,idx){
-    if(readonly)return
-    var g=GROUPS.find(function(x){return x.name===gName}),newG=Object.assign({},prode.groups),k=gName+'_'+idx,cur=newG[k]
-    var others=g.teams.map(function(_,i){return i}).filter(function(i){return i!==idx})
-    if(!cur){if(!others.some(function(i){return newG[gName+'_'+i]===1}))newG[k]=1;else if(!others.some(function(i){return newG[gName+'_'+i]===2}))newG[k]=2}
-    else if(cur===1){if(!others.some(function(i){return newG[gName+'_'+i]===2}))newG[k]=2;else delete newG[k]}
-    else delete newG[k]
-    setProde(Object.assign({},prode,{groups:newG}))
-  }
+
   function setScore(matchId,side,val,matchDate){
     if(readonly||isMatchLocked(matchDate))return
     var newS=Object.assign({},prode.scores),cur=newS[matchId]||{a:'',b:''}
     newS[matchId]=Object.assign({},cur,{[side]:val});setProde(Object.assign({},prode,{scores:newS}))
   }
+
   return(
     <div>
-      <div style={{fontSize:11,color:C.gray,marginBottom:8}}>Clasificados: {Object.keys(prode.groups).length}/48 | Toca para elegir 1ro y 2do de cada grupo</div>
+      <div style={{background:'#e8f4fd',border:'1px solid '+C.blue,borderRadius:8,padding:'8px 12px',marginBottom:10,fontSize:11,color:C.blue}}>
+        Pronosticá los marcadores — la tabla se calcula sola y arma los 16avos automáticamente
+      </div>
       {GROUPS.map(function(g){
         var gMatches=GROUP_MATCHES.filter(function(m){return m.g===g.name})
+        var table=calcGroupTable(g.name,prode.scores)
+        var hasScores=table.some(function(t){return t.played>0})
         return(
           <div key={g.name} style={{...sCard,marginBottom:10}}>
-            <div style={{background:C.blue,color:'#fff',padding:'5px 10px',fontSize:13,fontWeight:500,display:'flex',justifyContent:'space-between'}}>
-              <span>GRUPO {g.name}</span>
-              <span style={{fontSize:11,opacity:.8}}>{Object.keys(prode.groups).filter(function(k){return k.startsWith(g.name+'_')}).length}/2</span>
+            <div style={{background:C.blue,color:'#fff',padding:'5px 10px',fontSize:13,fontWeight:500}}>
+              GRUPO {g.name}
             </div>
-            <div style={{padding:'4px 0'}}>
-              {g.teams.map(function(t,i){
-                var pos=prode.groups[g.name+'_'+i],opacity=(readonly&&!pos)?0.6:1
-                return(<div key={i} style={Object.assign({},sTeamRow(pos),{opacity})} onClick={function(){toggleGroup(g.name,i)}}>
-                  <img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}}/>
-                  <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.n}</span>
-                  {pos===1&&<span style={{fontSize:9,background:C.gold,color:'#4a2800',borderRadius:10,padding:'1px 5px'}}>1ro</span>}
-                  {pos===2&&<span style={{fontSize:9,background:C.green,color:'#fff',borderRadius:10,padding:'1px 5px'}}>2do</span>}
-                </div>)
-              })}
-            </div>
-            <div style={{borderTop:'1px solid '+C.border,padding:'6px 8px'}}>
-              <div style={{fontSize:11,color:C.gray,marginBottom:4}}>Marcadores:</div>
+            {/* Tabla calculada automáticamente */}
+            {hasScores&&(
+              <div style={{padding:'4px 0',borderBottom:'1px solid '+C.border}}>
+                <div style={{fontSize:10,color:C.gray,padding:'2px 8px'}}>Tabla según tus pronósticos:</div>
+                {table.map(function(t,i){
+                  var team=g.teams[t.idx]
+                  return(
+                    <div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 8px',fontSize:12,background:i<2?'#f0f8ff':'#fff',borderBottom:'1px solid #f5f5f5'}}>
+                      <span style={{minWidth:16,fontWeight:700,color:i===0?C.gold:i===1?C.green:C.gray}}>{i+1}</span>
+                      <img src={flag(team.f)} alt="" style={{width:18,height:12}}/>
+                      <span style={{flex:1}}>{team.n}</span>
+                      <span style={{color:C.gray,fontSize:10}}>{t.pts}pts {t.gd>0?'+':''}{t.gd}dg</span>
+                      {i<2&&<span style={{fontSize:9,background:i===0?C.gold:C.green,color:i===0?'#4a2800':'#fff',borderRadius:10,padding:'1px 5px'}}>{i===0?'1ro':'2do'}</span>}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {/* Marcadores */}
+            <div style={{padding:'6px 8px'}}>
+              <div style={{fontSize:11,color:C.gray,marginBottom:4}}>Pronosticá los marcadores:</div>
               {gMatches.map(function(m){
                 var locked=isMatchLocked(m.date),tl=timeLeftStr(m.date),ta=g.teams[m.a],tb=g.teams[m.b],sc=prode.scores&&prode.scores[m.id]
                 return(<div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',borderBottom:'1px solid #f0f0f0',fontSize:12}}>
@@ -549,12 +600,15 @@ var ROUND_COUNTS={r32:16,r16:8,qf:4,sf:2}
 var ROUND_LABELS={r32:'Partido',r16:'Octavo',qf:'Cuarto',sf:'Semifinal'}
 
 function getTeamsForMatch(round, idx, prode, realStandings){
-  // Usa clasificados REALES si están disponibles, si no usa los del pronóstico del jugador
   function getClassified(g, pos){
+    // 1. Usar clasificados REALES de la API si están disponibles
     if(realStandings&&realStandings.classified&&realStandings.classified[g]&&realStandings.classified[g][pos]){
       return realStandings.classified[g][pos]
     }
-    // Fallback: pronóstico del jugador
+    // 2. Calcular automáticamente desde los marcadores del jugador
+    var fromScores = getClassifiedFromScores(prode, g, pos)
+    if(fromScores) return fromScores
+    // 3. Fallback: picks manuales del jugador (campo groups)
     var group=GROUPS.find(function(x){return x.name===g})
     if(!group)return null
     var i=group.teams.findIndex(function(_,i){return prode.groups[g+'_'+i]===pos})
