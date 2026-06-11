@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   try {
     const url = 'https://v3.football.api-sports.io/' + endpoint
     const response = await fetch(url, {
-      headers: { 'x-apisports-key': '3347b96febf99d902804fbbdf5b0076d' }
+      headers: { 'x-apisports-key': 'e1719cc345d25f7e9cecc0f078e09d7c' }
     })
     const data = await response.json()
     res.status(200).json(data)
