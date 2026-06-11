@@ -102,7 +102,9 @@ const KNOCKOUT_DATES = {
 
 const LOCK_MINS = 20
 const ADMIN = 'Tomy'
-const FDORG_KEY = 'acdf3492441b4b24bad344dd71f2eaa3'
+const API_FOOTBALL_KEY = '3347b96febf99d902804fbbdf5b0076d'
+const WC_LEAGUE = 1
+const WC_SEASON = 2026
 
 function isMatchLocked(date) { return new Date() > new Date(date.getTime() - LOCK_MINS*60000) }
 function isRoundLocked(round) { return new Date() > new Date(KNOCKOUT_DATES[round].getTime() - LOCK_MINS*60000) }
@@ -176,22 +178,51 @@ async function dbSaveResults(data){var r=await supabase.from('results').upsert({
 
 async function fetchLiveMatches(){
   try{
-    var r=await fetch('https://api.football-data.org/v4/competitions/WC/matches?season=2026',{headers:{'X-Auth-Token':FDORG_KEY}})
+    var r=await fetch('https://v3.football.api-sports.io/fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON,{
+      headers:{'x-apisports-key':API_FOOTBALL_KEY}
+    })
     if(!r.ok)return null
-    var j=await r.json();return j.matches||null
-  }catch(e){return null}
+    var j=await r.json()
+    if(!j.response)return null
+    // Convertir al formato esperado por LiveScreen
+    return j.response.map(function(f){
+      return {
+        id: f.fixture.id,
+        utcDate: f.fixture.date,
+        status: mapStatus(f.fixture.status.short),
+        stage: f.league.round,
+        venue: f.fixture.venue.name,
+        homeTeam: {name: f.teams.home.name, crest: f.teams.home.logo},
+        awayTeam: {name: f.teams.away.name, crest: f.teams.away.logo},
+        score: {
+          fullTime: {home: f.goals.home, away: f.goals.away},
+          halfTime: {home: f.score.halftime.home, away: f.score.halftime.away}
+        }
+      }
+    })
+  }catch(e){console.error(e);return null}
+}
+
+function mapStatus(s){
+  if(s==='FT'||s==='AET'||s==='PEN')return 'FINISHED'
+  if(s==='1H'||s==='2H'||s==='ET')return 'IN_PLAY'
+  if(s==='HT')return 'PAUSED'
+  if(s==='NS')return 'SCHEDULED'
+  return 'TIMED'
 }
 
 async function fetchLiveResults(){
   try{
-    var r=await fetch('https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED&season=2026',{headers:{'X-Auth-Token':FDORG_KEY}})
+    var r=await fetch('https://v3.football.api-sports.io/fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&status=FT-AET-PEN',{
+      headers:{'x-apisports-key':API_FOOTBALL_KEY}
+    })
     if(!r.ok)return null
     var j=await r.json(),results={}
-    if(!j.matches)return null
-    j.matches.forEach(function(m){
-      var ha=m.score.fullTime.home,hb=m.score.fullTime.away
+    if(!j.response)return null
+    j.response.forEach(function(f){
+      var ha=f.goals.home,hb=f.goals.away
       if(ha===null||hb===null)return
-      var hn=m.homeTeam.name.toLowerCase(),an=m.awayTeam.name.toLowerCase()
+      var hn=f.teams.home.name.toLowerCase(),an=f.teams.away.name.toLowerCase()
       GROUP_MATCHES.forEach(function(gm){
         var g=GROUPS.find(function(x){return x.name===gm.g})
         if(!g)return
@@ -202,7 +233,7 @@ async function fetchLiveResults(){
       })
     })
     return results
-  }catch(e){return null}
+  }catch(e){console.error(e);return null}
 }
 
 var R32_PAIRS=[
