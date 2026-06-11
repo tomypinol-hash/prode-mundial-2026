@@ -110,14 +110,17 @@ function isRoundLocked(round) { return new Date() > new Date(KNOCKOUT_DATES[roun
 function timeLeftStr(date) {
   const diff = new Date(date.getTime() - LOCK_MINS*60000) - new Date()
   if (diff <= 0) return null
-  const d = Math.floor(diff/86400000), h = Math.floor((diff%86400000)/3600000), m = Math.floor((diff%3600000)/60000)
-  if (d > 0) return d+'d '+h+'h'
-  if (h > 0) return h+'h '+m+'m'
+  const d=Math.floor(diff/86400000),h=Math.floor((diff%86400000)/3600000),m=Math.floor((diff%3600000)/60000)
+  if (d>0) return d+'d '+h+'h'
+  if (h>0) return h+'h '+m+'m'
   return m+' min'
 }
 
 function flag(code) { return 'https://flagcdn.com/24x18/'+code.toLowerCase()+'.png' }
-function emptyProde() { return {groups:{},scores:{},r32:{},r16:{},qf:{},sf:{},third:{},final:{}} }
+
+function emptyProde() {
+  return {groups:{},scores:{},knockoutScores:{r32:{},r16:{},qf:{},sf:{},third:{},final:{}},r32:{},r16:{},qf:{},sf:{},third:{},final:{}}
+}
 
 function calcMatchPoints(pred, real) {
   if (!pred||!real) return 0
@@ -131,13 +134,22 @@ function calcMatchPoints(pred, real) {
 function calcScore(prode, results) {
   if (!prode) return 0
   var pts=0; results=results||{}
-  GROUP_MATCHES.forEach(function(m){pts+=calcMatchPoints(prode.scores&&prode.scores[m.id],results[m.id])})
+  // Grupos: 1pt ganador, 2pt exacto
+  GROUP_MATCHES.forEach(function(m){ pts+=calcMatchPoints(prode.scores&&prode.scores[m.id], results[m.id]) })
+  // Eliminatorias: pts base ganador, doble exacto
   var rounds=[{k:'r32',p:1},{k:'r16',p:2},{k:'qf',p:3},{k:'sf',p:4},{k:'final',p:5}]
   rounds.forEach(function(r){
-    var rd=prode[r.k]||{}
+    var rd=prode[r.k]||{}, ks=prode.knockoutScores&&prode.knockoutScores[r.k]||{}
     Object.keys(rd).forEach(function(id){
-      var pred=rd[id],real=results[id]
-      if (pred&&real&&pred.n===real.n) pts+=r.p
+      var pred=rd[id], real=results[id], realScore=results[id+'_score']
+      if (!pred||!real) return
+      if (pred.n!==real.n) return
+      var predSc=ks[id], exacto=false
+      if (predSc&&realScore) {
+        var pa=parseInt(predSc.a),pb=parseInt(predSc.b),ra=parseInt(realScore.a),rb=parseInt(realScore.b)
+        if (!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb) exacto=true
+      }
+      pts += exacto ? r.p*2 : r.p
     })
   })
   return pts
@@ -269,6 +281,7 @@ export default function App(){
 
   if(screen==='live')return <LiveScreen setScreen={setScreen}/>
   if(screen==='admin')return <AdminPanel players={players} results={results} saveResults={saveResults} setScreen={setScreen} fetchAll={fetchAll}/>
+
   if(screen==='view'){
     return(
       <div style={{maxWidth:480,margin:'0 auto',padding:'8px'}}>
@@ -287,6 +300,7 @@ export default function App(){
       </div>
     )
   }
+
   if(screen==='prode'){
     var champ=getChampion(prode)
     return(
@@ -322,7 +336,7 @@ export default function App(){
       </div>
       <div style={{...sCard,padding:'20px 16px',marginTop:10}}>
         <div style={{fontSize:15,fontWeight:500,color:C.blue,marginBottom:12,textAlign:'center'}}>Entrar al prode</div>
-        <input style={{...sInput,marginBottom:8}} placeholder="Tu nombre" value={nameInput} onChange={function(e){setNameInput(e.target.value)}}/> 
+        <input style={{...sInput,marginBottom:8}} placeholder="Tu nombre" value={nameInput} onChange={function(e){setNameInput(e.target.value)}}/>
         <input style={sInput} placeholder="Tu contrasena" type="password" value={passInput} onChange={function(e){setPassInput(e.target.value)}} onKeyDown={function(e){if(e.key==='Enter')handleJoin()}}/>
         {error&&<div style={{color:C.red,fontSize:13,marginTop:6,textAlign:'center'}}>{error}</div>}
         <button style={sBtn()} onClick={handleJoin} disabled={loading}>{loading?'Cargando...':'Entrar al prode!'}</button>
@@ -334,7 +348,7 @@ export default function App(){
             var sc=calcScore(p.prode,results),ch=getChampion(p.prode)
             return(
               <div key={p.player_name} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid '+C.border,fontSize:13}}>
-                <span style={{fontSize:16,minWidth:26}}>{i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'}  </span>
+                <span style={{fontSize:16,minWidth:26}}>{i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'}</span>
                 <div style={{flex:1}}><span style={{fontWeight:600}}>{p.player_name}</span>{ch&&<span style={{fontSize:11,color:C.gray,marginLeft:6}}>{ch.n}</span>}</div>
                 <span style={{fontWeight:700,color:C.blue,fontSize:14}}>{sc} pts</span>
                 <button onClick={async function(){setLoading(true);var row=await dbGetOne(p.player_name);setPlayer(p.player_name);setProdeState(row?row.prode:emptyProde());setScreen('view');setActiveTab('groups');setLoading(false)}} style={sSmallBtn(C.blue)}>Ver</button>
@@ -429,17 +443,37 @@ function GroupsTab(props){
 function KnockoutTab(props){
   var round=props.round,prode=props.prode,setProde=props.setProde,readonly=props.readonly
   var locked=isRoundLocked(round),tl=timeLeftStr(KNOCKOUT_DATES[round]),count=ROUND_COUNTS[round],items=[]
+
+  function setKnockoutScore(id,side,val){
+    if(locked||readonly)return
+    var ks=Object.assign({},prode.knockoutScores||{}),rs=Object.assign({},ks[round]||{})
+    rs[id]=Object.assign({},rs[id]||{a:'',b:''},{[side]:val})
+    ks[round]=rs;setProde(Object.assign({},prode,{knockoutScores:ks}))
+  }
+
   for(var i=0;i<count;i++){
     (function(idx){
       var id=round+'_'+idx,teams=getMatchTeams(prode,round,idx),ta=teams[0],tb=teams[1],w=prode[round][id]||null
+      var sc=(prode.knockoutScores&&prode.knockoutScores[round]&&prode.knockoutScores[round][id])||null
       items.push(<div key={id} style={Object.assign({},sCard,{marginBottom:8})}>
         <div style={{background:C.red,color:'#fff',fontSize:11,textAlign:'center',padding:'3px'}}>{ROUND_LABELS[round]} {idx+1}</div>
         {[ta,tb].map(function(t,ti){
           var isW=w&&t&&w.n===t.n
           return(<div key={ti} style={Object.assign({},sMatchTeam(isW),{cursor:(locked||!t||readonly)?'default':'pointer'})} onClick={function(){if(t&&!locked&&!readonly){var nr=Object.assign({},prode[round],{[id]:t});setProde(Object.assign({},prode,{[round]:nr}))}}}>
-            {t?<><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}}/><span>{t.n}</span>{isW&&<span style={{marginLeft:'auto',color:C.blue}}>OK</span>}</>:<span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}
+            {t?<><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}}/><span style={{flex:1}}>{t.n}</span>{isW&&<span style={{color:C.blue,fontSize:11}}>✓</span>}</>:<span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}
           </div>)
         })}
+        {(ta&&tb)&&(
+          <div style={{padding:'6px 10px',borderTop:'1px solid #f0f0f0',display:'flex',alignItems:'center',gap:6,fontSize:12}}>
+            <span style={{color:C.gray,fontSize:11}}>Marcador:</span>
+            <img src={flag(ta.f)} alt="" style={{width:16,height:11}}/>
+            <input type="number" min="0" max="20" value={sc?sc.a:''} onChange={function(e){setKnockoutScore(id,'a',e.target.value)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+            <span style={{color:C.gray}}>-</span>
+            <input type="number" min="0" max="20" value={sc?sc.b:''} onChange={function(e){setKnockoutScore(id,'b',e.target.value)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+            <img src={flag(tb.f)} alt="" style={{width:16,height:11}}/>
+            {locked?<span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>:tl&&<span style={{color:C.gold,fontSize:10,marginLeft:'auto'}}>{tl}</span>}
+          </div>
+        )}
       </div>)
     })(i)
   }
@@ -452,10 +486,26 @@ function FinalTab(props){
   var sf0w=(prode.sf&&prode.sf.sf_0)||null,sf1w=(prode.sf&&prode.sf.sf_1)||null
   var qf0=(prode.qf&&prode.qf.qf_0)||null,qf1=(prode.qf&&prode.qf.qf_1)||null
   var qf2=(prode.qf&&prode.qf.qf_2)||null,qf3=(prode.qf&&prode.qf.qf_3)||null
-  var loser0=sf0w?(sf0w.n===(qf0&&qf0.n)?qf1:qf0):null,loser1=sf1w?(sf1w.n===(qf2&&qf2.n)?qf3:qf2):null
+  var loser0=sf0w?(sf0w.n===(qf0&&qf0.n)?qf1:qf0):null
+  var loser1=sf1w?(sf1w.n===(qf2&&qf2.n)?qf3:qf2):null
   var champ=(prode.final&&prode.final.final_m)||null
+  var finalSc=(prode.knockoutScores&&prode.knockoutScores.final&&prode.knockoutScores.final.final_m)||null
+
   function pick(matchId,team,field){if(locked||readonly)return;setProde(Object.assign({},prode,{[field]:Object.assign({},prode[field],{[matchId]:team})}))}
-  function MRow(t,id,field,w){var isW=w&&t&&w.n===t.n;return(<div style={Object.assign({},sMatchTeam(isW),{cursor:(locked||!t||readonly)?'default':'pointer'})} onClick={function(){if(t&&!locked&&!readonly)pick(id,t,field)}}>{t?<><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}}/><span>{t.n}</span>{isW&&<span style={{marginLeft:'auto'}}>OK</span>}</>:<span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}</div>)}
+  function setKScore(side,val){
+    if(locked||readonly)return
+    var ks=Object.assign({},prode.knockoutScores||{}),fn=Object.assign({},ks.final||{})
+    fn.final_m=Object.assign({},fn.final_m||{a:'',b:''},{[side]:val})
+    ks.final=fn;setProde(Object.assign({},prode,{knockoutScores:ks}))
+  }
+
+  function MRow(t,id,field,w){
+    var isW=w&&t&&w.n===t.n
+    return(<div style={Object.assign({},sMatchTeam(isW),{cursor:(locked||!t||readonly)?'default':'pointer'})} onClick={function(){if(t&&!locked&&!readonly)pick(id,t,field)}}>
+      {t?<><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}}/><span style={{flex:1}}>{t.n}</span>{isW&&<span style={{color:C.blue,fontSize:11}}>✓</span>}</>:<span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}
+    </div>)
+  }
+
   return(
     <div>
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>{locked?<span style={sLock}>Cerrado</span>:(tl&&<span style={{color:C.gold,fontSize:12,fontWeight:500}}>{tl} para el cierre</span>)}</div>
@@ -471,6 +521,17 @@ function FinalTab(props){
         <div style={{background:C.gold,color:'#4a2800',fontSize:12,textAlign:'center',padding:'4px',fontWeight:600}}>FINAL MUNDIAL 2026</div>
         {MRow(sf0w,'final_m','final',(prode.final&&prode.final.final_m)||null)}
         {MRow(sf1w,'final_m','final',(prode.final&&prode.final.final_m)||null)}
+        {(sf0w&&sf1w)&&(
+          <div style={{padding:'6px 10px',borderTop:'1px solid #f0f0f0',display:'flex',alignItems:'center',gap:6,fontSize:12}}>
+            <span style={{color:C.gray,fontSize:11}}>Marcador:</span>
+            <img src={flag((sf0w||{f:'ar'}).f)} alt="" style={{width:16,height:11}}/>
+            <input type="number" min="0" max="20" value={finalSc?finalSc.a:''} onChange={function(e){setKScore('a',e.target.value)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+            <span style={{color:C.gray}}>-</span>
+            <input type="number" min="0" max="20" value={finalSc?finalSc.b:''} onChange={function(e){setKScore('b',e.target.value)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+            <img src={flag((sf1w||{f:'fr'}).f)} alt="" style={{width:16,height:11}}/>
+            {locked&&<span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -525,8 +586,8 @@ function AdminPanel(props){
         {activeTab==='resultados'&&(
           <div>
             <div style={{fontSize:14,fontWeight:500,color:C.blue,marginBottom:6}}>Cargar resultados</div>
-            <div style={{fontSize:12,color:C.gray,marginBottom:6}}>Se sincronizan automaticamente. En penales ingresa el resultado del tiempo reglamentario.</div>
-            <button onClick={async function(){setSaving(true);var lr=await fetchLiveResults();if(lr){var cur=await dbGetResults(),merged=Object.assign({},cur,lr);await saveResults(merged);alert('Sincronizado!')}else{alert('Error al conectar')} setSaving(false)}} style={sBtn(C.green,{marginBottom:12})} disabled={saving}>{saving?'Sincronizando...':'Sincronizar ahora'}</button>
+            <div style={{fontSize:12,color:C.gray,marginBottom:6}}>Se sincronizan automaticamente. En penales ingresa resultado del tiempo reglamentario.</div>
+            <button onClick={async function(){setSaving(true);var lr=await fetchLiveResults();if(lr){var cur=await dbGetResults(),merged=Object.assign({},cur,lr);await saveResults(merged);alert('Sincronizado!')}else{alert('Error al conectar')}setSaving(false)}} style={sBtn(C.green,{marginBottom:12})} disabled={saving}>{saving?'Sincronizando...':'Sincronizar ahora'}</button>
             {GROUPS.map(function(g){
               var gMatches=GROUP_MATCHES.filter(function(m){return m.g===g.name})
               return(<div key={g.name} style={{marginBottom:12}}>
