@@ -130,9 +130,9 @@ const KNOCKOUT_DATES = {
 }
 
 const LOCK_MINS = 20
-const ADMIN = 'Tomy'
+const ADMIN = 'Administrador'
 const ALLOWED_PLAYERS = [
-  'Tomy','FedeBeltrami','Nico','Gaston','Bola',
+  'Administrador','FedeBeltrami','Nico','Gaston','Bola',
   'Tomy ( Jugador)','Santi','Roman 🌎 💂','EPI','Federico'
 ]
 const WC_LEAGUE = 1
