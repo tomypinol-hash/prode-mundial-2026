@@ -134,6 +134,10 @@ const KNOCKOUT_DATES = {
 
 const LOCK_MINS = 20
 const ADMIN = 'Tomy'
+const ALLOWED_PLAYERS = [
+  'Tomy','FedeBeltrami','Nico','Gaston','Bola',
+  'Tomy ( Jugador)','Santi','Roman 🌎 💂','EPI','Federico'
+]
 const WC_LEAGUE = 1
 const WC_SEASON = 2026
 
@@ -402,6 +406,11 @@ export default function App(){
     var name=nameInput.trim(),pass=passInput.trim()
     if(!name){setError('Escribi tu nombre');return}
     if(!pass){setError('Escribi una contrasena');return}
+    // Verificar que el jugador está en la lista permitida
+    if(!ALLOWED_PLAYERS.includes(name)){
+      setError('Este nombre no está en la lista de jugadores. Contactá a Tomy.')
+      setLoading(false);return
+    }
     setError('');setLoading(true)
     var row=await dbGetOne(name)
     if(!row){var np=emptyProde();np._pass=pass;await dbUpsert(name,np);row=await dbGetOne(name)}
@@ -469,7 +478,11 @@ export default function App(){
         <button onClick={function(){setScreen('live')}} style={{background:'rgba(255,255,255,.25)',color:'#fff',border:'2px solid rgba(255,255,255,.6)',borderRadius:10,padding:'6px 20px',cursor:'pointer',fontSize:13,fontWeight:600,marginTop:10}}>Ver partidos en vivo</button>
       </div>
       <div style={{...sCard,padding:'20px 16px',marginTop:10}}>
-        <div style={{fontSize:15,fontWeight:500,color:C.blue,marginBottom:12,textAlign:'center'}}>Entrar al prode</div>
+        <div style={{fontSize:15,fontWeight:500,color:C.blue,marginBottom:8,textAlign:'center'}}>Entrar al prode</div>
+        <div style={{fontSize:11,color:C.gray,marginBottom:12,textAlign:'center',background:'#f9f9f9',padding:'6px 10px',borderRadius:8}}>
+          ⚠️ El nombre de usuario debe ser exactamente igual al registrado (mayúsculas, espacios y caracteres incluidos)<br/>
+          <span style={{fontSize:10,color:'#aaa',marginTop:4,display:'block'}}>PD: Roman, no hagas más usuarios, ya tenés uno 😅</span>
+        </div>
         <input style={{...sInput,marginBottom:8}} placeholder="Tu nombre" value={nameInput} onChange={function(e){setNameInput(e.target.value)}}/>
         <input style={sInput} placeholder="Tu contrasena" type="password" value={passInput} onChange={function(e){setPassInput(e.target.value)}} onKeyDown={function(e){if(e.key==='Enter')handleJoin()}}/>
         {error&&<div style={{color:C.red,fontSize:13,marginTop:6,textAlign:'center'}}>{error}</div>}
