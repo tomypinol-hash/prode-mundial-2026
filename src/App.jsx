@@ -555,28 +555,15 @@ function GroupsTab(props){
               <div style={{fontSize:11,color:C.gray,marginBottom:4}}>Pronosticá los marcadores:</div>
               {gMatches.map(function(m){
                 var locked=isMatchLocked(m.date),tl=timeLeftStr(m.date),ta=g.teams[m.a],tb=g.teams[m.b],sc=prode.scores&&prode.scores[m.id]
-                var realSc=results&&results[m.id]
-                var pts=sc&&realSc?calcMatchPoints(sc,realSc):null
-                return(<div key={m.id} style={{marginBottom:6,borderBottom:'1px solid #f0f0f0',paddingBottom:6}}>
-                  <div style={{display:'flex',alignItems:'center',gap:6,fontSize:12}}>
-                    <img src={flag(ta.f)} alt={ta.n} style={{width:16,height:11,objectFit:'cover'}}/>
-                    <span style={{width:70,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ta.n}</span>
-                    <input type="number" min="0" max="20" value={sc?sc.a:''} onChange={function(e){setScore(m.id,'a',e.target.value,m.date)}} disabled={locked||readonly} style={{width:32,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
-                    <span style={{color:C.gray}}>-</span>
-                    <input type="number" min="0" max="20" value={sc?sc.b:''} onChange={function(e){setScore(m.id,'b',e.target.value,m.date)}} disabled={locked||readonly} style={{width:32,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
-                    <img src={flag(tb.f)} alt={tb.n} style={{width:16,height:11,objectFit:'cover'}}/>
-                    <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tb.n}</span>
-                    {locked?<span style={sLock}>Cerrado</span>:(tl&&<span style={{color:C.gold,fontSize:10}}>{tl}</span>)}
-                  </div>
-                  {realSc&&(
-                    <div style={{display:'flex',alignItems:'center',gap:6,marginTop:4,padding:'3px 6px',background:pts===2?'#eafff0':pts===1?'#fff8e1':'#ffeaea',borderRadius:6,fontSize:11}}>
-                      <span style={{color:C.gray}}>Real:</span>
-                      <span style={{fontWeight:700}}>{realSc.a} - {realSc.b}</span>
-                      <span style={{marginLeft:'auto',fontWeight:700,color:pts===2?C.green:pts===1?C.gold:C.red}}>
-                        {pts===2?'✅ +2pts exacto':pts===1?'👍 +1pt ganador':'❌ 0pts'}
-                      </span>
-                    </div>
-                  )}
+                return(<div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',borderBottom:'1px solid #f0f0f0',fontSize:12}}>
+                  <img src={flag(ta.f)} alt={ta.n} style={{width:16,height:11,objectFit:'cover'}}/>
+                  <span style={{width:70,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ta.n}</span>
+                  <input type="number" min="0" max="20" value={sc?sc.a:''} onChange={function(e){setScore(m.id,'a',e.target.value,m.date)}} disabled={locked||readonly} style={{width:32,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+                  <span style={{color:C.gray}}>-</span>
+                  <input type="number" min="0" max="20" value={sc?sc.b:''} onChange={function(e){setScore(m.id,'b',e.target.value,m.date)}} disabled={locked||readonly} style={{width:32,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+                  <img src={flag(tb.f)} alt={tb.n} style={{width:16,height:11,objectFit:'cover'}}/>
+                  <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tb.n}</span>
+                  {locked?<span style={sLock}>Cerrado</span>:(tl&&<span style={{color:C.gold,fontSize:10}}>{tl}</span>)}
                 </div>)
               })}
             </div>
