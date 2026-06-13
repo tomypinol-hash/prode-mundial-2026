@@ -133,7 +133,7 @@ const LOCK_MINS = 20
 const ADMIN = 'Administrador'
 const ALLOWED_PLAYERS = [
   'Administrador','FedeBeltrami','Nico','Gaston','Bola',
-  'Tomy ( Jugador)','Santi','Roman 🌎 💂','EPI','Federico'
+  'Tomy ( Jugador)','Santi','Roman','EPI','Federico'
 ]
 const WC_LEAGUE = 1
 const WC_SEASON = 2026
