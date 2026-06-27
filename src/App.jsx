@@ -313,12 +313,22 @@ async function fetchKnockoutResults(round){
 }
 
 var ROUND_32_PAIRS=[
-  ['A',1,'B',2],['C',1,'D',2],['E',1,'F',2],['G',1,'H',2],
-  ['I',1,'J',2],['K',1,'L',2],
-  ['B',1,'A',2],['D',1,'C',2],
-  ['F',1,'E',2],['H',1,'G',2],
-  ['J',1,'I',2],['L',1,'K',2],
-  ['3rd',0,'3rd',1],['3rd',2,'3rd',3],['3rd',4,'3rd',5],['3rd',6,'3rd',7],
+  ['A',2,'B',2],
+  ['E',1,'3rd',0],
+  ['F',1,'C',2],
+  ['C',1,'F',2],
+  ['I',1,'3rd',1],
+  ['E',2,'I',2],
+  ['A',1,'3rd',2],
+  ['L',1,'3rd',3],
+  ['D',1,'3rd',4],
+  ['G',1,'3rd',5],
+  ['K',2,'L',2],
+  ['H',1,'J',2],
+  ['B',1,'3rd',6],
+  ['J',1,'H',2],
+  ['K',1,'3rd',7],
+  ['D',2,'G',2],
 ]
 var ROUND_COUNTS={r32:16,r16:8,qf:4,sf:2}
 var ROUND_LABELS={r32:'Partido',r16:'Octavo',qf:'Cuarto',sf:'Semifinal'}
@@ -338,8 +348,9 @@ function getTeamsForMatch(round,idx,prode,realStandings){
   if(round==='r32'){
     var pair=ROUND_32_PAIRS[idx]
     if(!pair)return[null,null]
-    if(pair[0]==='3rd'&&pair[2]==='3rd')return[get3rd(pair[1]),get3rd(pair[3])]
-    return[getClassified(pair[0],pair[1]),getClassified(pair[2],pair[3])]
+    var t1=pair[0]==='3rd'?get3rd(pair[1]):getClassified(pair[0],pair[1])
+    var t2=pair[2]==='3rd'?get3rd(pair[3]):getClassified(pair[2],pair[3])
+    return[t1,t2]
   }
   if(round==='r16')return[prode.r32['r32_'+(idx*2)]||null,prode.r32['r32_'+(idx*2+1)]||null]
   if(round==='qf')return[prode.r16['r16_'+(idx*2)]||null,prode.r16['r16_'+(idx*2+1)]||null]
