@@ -198,19 +198,21 @@ function calcScore(prode,results){
   if(!prode)return 0
   var pts=0;results=results||{}
   GROUP_MATCHES.forEach(function(m){pts+=calcMatchPoints(prode.scores&&prode.scores[m.id],results[m.id])})
-  var rounds=[{k:'r32',p:1},{k:'r16',p:2},{k:'qf',p:3},{k:'sf',p:3},{k:'final',p:3}]
-  rounds.forEach(function(r){
-    var rd=prode[r.k]||{},ks=prode.knockoutScores&&prode.knockoutScores[r.k]||{}
+  // Nueva logica: 1pt por acertar resultado 120min, 1pt por acertar quien pasa, 2pts ambos
+  var koRounds=['r32','r16','qf','sf','final']
+  koRounds.forEach(function(rk){
+    var rd=prode[rk]||{},ks=prode.knockoutScores&&prode.knockoutScores[rk]||{}
     Object.keys(rd).forEach(function(id){
       var pred=rd[id],real=results[id],realScore=results[id+'_score']
-      if(!pred||!real)return
-      if(pred.n!==real.n)return
-      var predSc=ks[id],exacto=false
+      if(!real)return
+      // 1pt por acertar quien pasa
+      if(pred&&pred.n===real.n)pts+=1
+      // 1pt extra por acertar el resultado (marcador 120min)
+      var predSc=ks[id]
       if(predSc&&realScore){
         var pa=parseInt(predSc.a),pb=parseInt(predSc.b),ra=parseInt(realScore.a),rb=parseInt(realScore.b)
-        if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)exacto=true
+        if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)pts+=1
       }
-      pts+=exacto?r.p*2:r.p
     })
   })
   return pts
@@ -789,12 +791,10 @@ function KnockoutTab(props){
     var ks=Object.assign({},prode.knockoutScores||{}),rs=Object.assign({},ks[round]||{})
     var cur=rs[id]||{a:'',b:''}
     var newSc=Object.assign({},cur,{[side]:val})
-    // Bloquear empate en fases eliminatorias
-    var pa=parseInt(newSc.a),pb=parseInt(newSc.b)
-    if(!isNaN(pa)&&!isNaN(pb)&&pa===pb)return
     rs[id]=newSc
     ks[round]=rs
-    // Auto-seleccionar ganador siempre que haya diferencia
+    var pa=parseInt(newSc.a),pb=parseInt(newSc.b)
+    // Auto-seleccionar ganador solo si hay diferencia (empate = penales, elige manual)
     var newProde=Object.assign({},prode,{knockoutScores:ks})
     if(!isNaN(pa)&&!isNaN(pb)&&pa!==pb&&ta&&tb){
       var winner=pa>pb?ta:tb
@@ -811,18 +811,7 @@ function KnockoutTab(props){
       var sc=(prode.knockoutScores&&prode.knockoutScores[round]&&prode.knockoutScores[round][id])||null
       var realWinner=results&&results[id]||null
       var realScore=results&&results[id+'_score']||null
-      var roundPts={r32:1,r16:2,qf:3,sf:3,final:3}
-      var koPts=null
-      if(w&&realWinner){
-        if(w.n===realWinner.n){
-          var exacto=false
-          if(sc&&realScore){
-            var pa=parseInt(sc.a),pb=parseInt(sc.b),ra=parseInt(realScore.a),rb=parseInt(realScore.b)
-            if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)exacto=true
-          }
-          koPts=exacto?roundPts[round]*2:roundPts[round]
-        } else {koPts=0}
-      }
+      // koPts ya no se usa (nueva logica en la barra de resultado)
       items.push(<div key={id} style={Object.assign({},sCard,{marginBottom:8})}>
         <div style={{background:C.red,color:'#fff',fontSize:11,textAlign:'center',padding:'3px'}}>{ROUND_LABELS[round]} {idx+1}</div>
         {[ta,tb].map(function(t,ti){
@@ -843,15 +832,30 @@ function KnockoutTab(props){
             {locked?<span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>:tl&&<span style={{color:C.gold,fontSize:10,marginLeft:'auto'}}>{tl}</span>}
           </div>
         )}
-        {realScore&&(
-          <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:koPts>0?koPts===roundPts[round]*2?'#eafff0':'#fff8e1':'#ffeaea',borderRadius:6,fontSize:11,margin:'0 6px 6px 6px'}}>
+        {realScore&&(function(){
+          // Nueva logica de puntos
+          var acertoResultado=false,acertoQuienPasa=false
+          if(sc&&realScore){
+            var pa=parseInt(sc.a),pb=parseInt(sc.b),ra=parseInt(realScore.a),rb=parseInt(realScore.b)
+            if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)acertoResultado=true
+          }
+          if(w&&realWinner&&w.n===realWinner.n)acertoQuienPasa=true
+          var pts120=acertoResultado?1:0
+          var ptsPasa=acertoQuienPasa?1:0
+          var totalPts=pts120+ptsPasa
+          var bg=totalPts===2?'#eafff0':totalPts===1?'#fff8e1':'#ffeaea'
+          var col=totalPts===2?C.green:totalPts===1?C.gold:C.red
+          var txt=totalPts===2?'✅ +2pts (resultado+quién pasa)':
+                  acertoResultado?'👍 +1pt (resultado 120min)':
+                  acertoQuienPasa?'👍 +1pt (quién pasa)':
+                  realWinner?'❌ 0pts':''
+          if(!txt)return null
+          return(<div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:bg,borderRadius:6,fontSize:11,margin:'0 6px 6px 6px'}}>
             <span style={{color:C.gray}}>Real:</span>
             <span style={{fontWeight:700}}>{realScore.a} - {realScore.b}</span>
-            {koPts!==null&&<span style={{marginLeft:'auto',fontWeight:700,color:koPts===roundPts[round]*2?C.green:koPts>0?C.gold:C.red}}>
-              {koPts===roundPts[round]*2?'✅ +'+koPts+'pts exacto':koPts>0?'👍 +'+koPts+'pt equipo':'❌ 0pts'}
-            </span>}
-          </div>
-        )}
+            <span style={{marginLeft:'auto',fontWeight:700,color:col}}>{txt}</span>
+          </div>)
+        })()}
       </div>)
     })(i)
   }
@@ -899,11 +903,9 @@ function FinalTab(props){
     var ks=Object.assign({},prode.knockoutScores||{}),fn=Object.assign({},ks.final||{})
     var cur=fn.final_m||{a:'',b:''}
     var newSc=Object.assign({},cur,{[side]:val})
-    var pa=parseInt(newSc.a),pb=parseInt(newSc.b)
-    // Bloquear empate en la final
-    if(!isNaN(pa)&&!isNaN(pb)&&pa===pb)return
     fn.final_m=newSc
     ks.final=fn
+    var pa=parseInt(newSc.a),pb=parseInt(newSc.b)
     var newProde=Object.assign({},prode,{knockoutScores:ks})
     if(!isNaN(pa)&&!isNaN(pb)&&pa!==pb&&t1&&t2){
       var winner=pa>pb?t1:t2
