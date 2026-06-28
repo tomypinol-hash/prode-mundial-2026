@@ -784,11 +784,24 @@ function KnockoutTab(props){
     return <PrivadoBloqueo round={round}/>
   }
   var locked=isRoundLocked(round),tl=timeLeftStr(KNOCKOUT_DATES[round]),count=ROUND_COUNTS[round],items=[]
-  function setKnockoutScore(id,side,val){
+  function setKnockoutScore(id,side,val,ta,tb){
     if(locked||readonly)return
     var ks=Object.assign({},prode.knockoutScores||{}),rs=Object.assign({},ks[round]||{})
-    rs[id]=Object.assign({},rs[id]||{a:'',b:''},{[side]:val})
-    ks[round]=rs;setProde(Object.assign({},prode,{knockoutScores:ks}))
+    var cur=rs[id]||{a:'',b:''}
+    var newSc=Object.assign({},cur,{[side]:val})
+    // Bloquear empate en fases eliminatorias
+    var pa=parseInt(newSc.a),pb=parseInt(newSc.b)
+    if(!isNaN(pa)&&!isNaN(pb)&&pa===pb)return
+    rs[id]=newSc
+    ks[round]=rs
+    // Auto-seleccionar ganador siempre que haya diferencia
+    var newProde=Object.assign({},prode,{knockoutScores:ks})
+    if(!isNaN(pa)&&!isNaN(pb)&&pa!==pb&&ta&&tb){
+      var winner=pa>pb?ta:tb
+      var nr=Object.assign({},prode[round],{[id]:winner})
+      newProde=Object.assign({},newProde,{[round]:nr})
+    }
+    setProde(newProde)
   }
   for(var i=0;i<count;i++){
     (function(idx){
@@ -823,9 +836,9 @@ function KnockoutTab(props){
           <div style={{padding:'6px 10px',borderTop:'1px solid #f0f0f0',display:'flex',alignItems:'center',gap:6,fontSize:12}}>
             <span style={{color:C.gray,fontSize:11}}>Marcador:</span>
             <img src={flag(ta.f)} alt="" style={{width:16,height:11}}/>
-            <input type="number" min="0" max="20" value={sc?sc.a:''} onChange={function(e){setKnockoutScore(id,'a',e.target.value)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+            <input type="number" min="0" max="20" value={sc?sc.a:''} onChange={function(e){setKnockoutScore(id,'a',e.target.value,ta,tb)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
             <span style={{color:C.gray}}>-</span>
-            <input type="number" min="0" max="20" value={sc?sc.b:''} onChange={function(e){setKnockoutScore(id,'b',e.target.value)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+            <input type="number" min="0" max="20" value={sc?sc.b:''} onChange={function(e){setKnockoutScore(id,'b',e.target.value,ta,tb)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
             <img src={flag(tb.f)} alt="" style={{width:16,height:11}}/>
             {locked?<span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>:tl&&<span style={{color:C.gold,fontSize:10,marginLeft:'auto'}}>{tl}</span>}
           </div>
@@ -881,11 +894,22 @@ function FinalTab(props){
     } else {finalPts=0}
   }
   function pick(matchId,team,field){if(locked||readonly)return;setProde(Object.assign({},prode,{[field]:Object.assign({},prode[field],{[matchId]:team})}))}
-  function setKScore(side,val){
+  function setKScore(side,val,t1,t2){
     if(locked||readonly)return
     var ks=Object.assign({},prode.knockoutScores||{}),fn=Object.assign({},ks.final||{})
-    fn.final_m=Object.assign({},fn.final_m||{a:'',b:''},{[side]:val})
-    ks.final=fn;setProde(Object.assign({},prode,{knockoutScores:ks}))
+    var cur=fn.final_m||{a:'',b:''}
+    var newSc=Object.assign({},cur,{[side]:val})
+    var pa=parseInt(newSc.a),pb=parseInt(newSc.b)
+    // Bloquear empate en la final
+    if(!isNaN(pa)&&!isNaN(pb)&&pa===pb)return
+    fn.final_m=newSc
+    ks.final=fn
+    var newProde=Object.assign({},prode,{knockoutScores:ks})
+    if(!isNaN(pa)&&!isNaN(pb)&&pa!==pb&&t1&&t2){
+      var winner=pa>pb?t1:t2
+      newProde=Object.assign({},newProde,{final:Object.assign({},prode.final,{final_m:winner})})
+    }
+    setProde(newProde)
   }
   function MRow(t,id,field,w){
     var isW=w&&t&&w.n===t.n
@@ -913,9 +937,9 @@ function FinalTab(props){
           <div style={{padding:'6px 10px',borderTop:'1px solid #f0f0f0',display:'flex',alignItems:'center',gap:6,fontSize:12}}>
             <span style={{color:C.gray,fontSize:11}}>Marcador:</span>
             <img src={flag((sf0w||{f:'ar'}).f)} alt="" style={{width:16,height:11}}/>
-            <input type="number" min="0" max="20" value={finalSc?finalSc.a:''} onChange={function(e){setKScore('a',e.target.value)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+            <input type="number" min="0" max="20" value={finalSc?finalSc.a:''} onChange={function(e){setKScore('a',e.target.value,sf0w,sf1w)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
             <span style={{color:C.gray}}>-</span>
-            <input type="number" min="0" max="20" value={finalSc?finalSc.b:''} onChange={function(e){setKScore('b',e.target.value)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+            <input type="number" min="0" max="20" value={finalSc?finalSc.b:''} onChange={function(e){setKScore('b',e.target.value,sf0w,sf1w)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
             <img src={flag((sf1w||{f:'fr'}).f)} alt="" style={{width:16,height:11}}/>
             {locked&&<span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>}
           </div>
