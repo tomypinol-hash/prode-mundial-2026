@@ -198,21 +198,20 @@ function calcScore(prode,results){
   if(!prode)return 0
   var pts=0;results=results||{}
   GROUP_MATCHES.forEach(function(m){pts+=calcMatchPoints(prode.scores&&prode.scores[m.id],results[m.id])})
-  // Nueva logica: 1pt por acertar resultado 120min, 1pt por acertar quien pasa, 2pts ambos
-  var koRounds=['r32','r16','qf','sf','final']
-  koRounds.forEach(function(rk){
-    var rd=prode[rk]||{},ks=prode.knockoutScores&&prode.knockoutScores[rk]||{}
+  // Logica eliminatorias: ganador correcto = p pts, marcador exacto = p*2 pts
+  var rounds=[{k:'r32',p:1},{k:'r16',p:2},{k:'qf',p:3},{k:'sf',p:3},{k:'final',p:3}]
+  rounds.forEach(function(r){
+    var rd=prode[r.k]||{},ks=prode.knockoutScores&&prode.knockoutScores[r.k]||{}
     Object.keys(rd).forEach(function(id){
       var pred=rd[id],real=results[id],realScore=results[id+'_score']
-      if(!real)return
-      // 1pt por acertar quien pasa
-      if(pred&&pred.n===real.n)pts+=1
-      // 1pt extra por acertar el resultado (marcador 120min)
-      var predSc=ks[id]
+      if(!pred||!real)return
+      if(pred.n!==real.n)return
+      var predSc=ks[id],exacto=false
       if(predSc&&realScore){
         var pa=parseInt(predSc.a),pb=parseInt(predSc.b),ra=parseInt(realScore.a),rb=parseInt(realScore.b)
-        if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)pts+=1
+        if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)exacto=true
       }
+      pts+=exacto?r.p*2:r.p
     })
   })
   return pts
@@ -833,27 +832,22 @@ function KnockoutTab(props){
           </div>
         )}
         {realScore&&(function(){
-          // Nueva logica de puntos
-          var acertoResultado=false,acertoQuienPasa=false
+          var roundPts={r32:1,r16:2,qf:3,sf:3,final:3}
+          var p=roundPts[round]||1
+          var acertoGanador=w&&realWinner&&w.n===realWinner.n
+          var exacto=false
           if(sc&&realScore){
             var pa=parseInt(sc.a),pb=parseInt(sc.b),ra=parseInt(realScore.a),rb=parseInt(realScore.b)
-            if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)acertoResultado=true
+            if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)exacto=true
           }
-          if(w&&realWinner&&w.n===realWinner.n)acertoQuienPasa=true
-          var pts120=acertoResultado?1:0
-          var ptsPasa=acertoQuienPasa?1:0
-          var totalPts=pts120+ptsPasa
-          var bg=totalPts===2?'#eafff0':totalPts===1?'#fff8e1':'#ffeaea'
-          var col=totalPts===2?C.green:totalPts===1?C.gold:C.red
-          var txt=totalPts===2?'✅ +2pts (resultado+quién pasa)':
-                  acertoResultado?'👍 +1pt (resultado 120min)':
-                  acertoQuienPasa?'👍 +1pt (quién pasa)':
-                  realWinner?'❌ 0pts':''
-          if(!txt)return null
+          var koPts=acertoGanador?(exacto?p*2:p):0
+          var bg=koPts===p*2?'#eafff0':koPts>0?'#fff8e1':'#ffeaea'
+          var col=koPts===p*2?C.green:koPts>0?C.gold:C.red
+          var txt=koPts===p*2?'✅ +'+koPts+'pts exacto':koPts>0?'👍 +'+koPts+'pt ganador':'❌ 0pts'
           return(<div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:bg,borderRadius:6,fontSize:11,margin:'0 6px 6px 6px'}}>
             <span style={{color:C.gray}}>Real:</span>
             <span style={{fontWeight:700}}>{realScore.a} - {realScore.b}</span>
-            <span style={{marginLeft:'auto',fontWeight:700,color:col}}>{txt}</span>
+            {realWinner&&<span style={{marginLeft:'auto',fontWeight:700,color:col}}>{txt}</span>}
           </div>)
         })()}
       </div>)
