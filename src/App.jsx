@@ -279,7 +279,9 @@ async function fetchRealStandings(){
   standings.forEach(function(group){
     if(!group||!group[0])return
     var groupName=group[0].group
-    if(groupName==='Ranking of third-placed teams'){
+    // La API puede mandar 'Ranking of third-placed teams' o 'Group Stage' para los terceros
+    var isTercerosGroup = groupName==='Ranking of third-placed teams' || groupName==='Group Stage'
+    if(isTercerosGroup){
       group.slice(0,8).forEach(function(t){
         var n=API_TEAM_MAP[t.team.name]||t.team.name
         thirds.push({n,f:NAME_TO_FLAG[n]||'un',pts:t.points,gd:t.goalsDiff,gf:t.all.goals.for,rank:t.rank})
@@ -287,6 +289,7 @@ async function fetchRealStandings(){
       return
     }
     var letter=groupName.replace('Group ','').trim()
+    if(letter.length!==1)return // ignorar cualquier otro grupo raro
     classified[letter]={}
     group.forEach(function(t){
       var n=API_TEAM_MAP[t.team.name]||t.team.name
