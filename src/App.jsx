@@ -316,22 +316,22 @@ async function fetchKnockoutResults(round){
 }
 
 var ROUND_32_PAIRS=[
-  ['A',2,'B',2],
-  ['E',1,'3rd',0],
-  ['F',1,'C',2],
-  ['C',1,'F',2],
-  ['I',1,'3rd',1],
-  ['E',2,'I',2],
-  ['A',1,'3rd',2],
-  ['L',1,'3rd',3],
-  ['D',1,'3rd',4],
-  ['G',1,'3rd',5],
-  ['K',2,'L',2],
-  ['H',1,'J',2],
-  ['B',1,'3rd',6],
-  ['J',1,'H',2],
-  ['K',1,'3rd',7],
-  ['D',2,'G',2],
+  ['A',2,'B',2],      // r32_0: Sudafrica vs Canada
+  ['E',1,'3rd',6],    // r32_1: Alemania vs Paraguay
+  ['F',1,'C',2],      // r32_2: Paises Bajos vs Marruecos
+  ['C',1,'F',2],      // r32_3: Brasil vs Japon
+  ['I',1,'3rd',1],    // r32_4: Francia vs Suecia
+  ['E',2,'I',2],      // r32_5: Costa de Marfil vs Noruega
+  ['A',1,'3rd',3],    // r32_6: Mexico vs Ecuador
+  ['L',1,'3rd',0],    // r32_7: Inglaterra vs RD Congo
+  ['D',1,'3rd',4],    // r32_8: EE.UU. vs Bosnia
+  ['G',1,'3rd',7],    // r32_9: Belgica vs Senegal
+  ['K',2,'L',2],      // r32_10: Portugal vs Croacia
+  ['H',1,'J',2],      // r32_11: Espana vs Austria
+  ['B',1,'3rd',5],    // r32_12: Suiza vs Argelia
+  ['J',1,'H',2],      // r32_13: Argentina vs Cabo Verde
+  ['K',1,'3rd',2],    // r32_14: Colombia vs Ghana
+  ['D',2,'G',2],      // r32_15: Australia vs Egipto
 ]
 var ROUND_COUNTS={r32:16,r16:8,qf:4,sf:2}
 var ROUND_LABELS={r32:'Partido',r16:'Octavo',qf:'Cuarto',sf:'Semifinal'}
