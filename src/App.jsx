@@ -476,6 +476,20 @@ function TodayMatches(props){
   )
 }
 
+function getActiveTab(){
+  var now=new Date()
+  // Último partido de grupos: 28 jun 02:00 UTC = 27 jun 23:00 ARG
+  var lastGroup=new Date('2026-06-28T02:00:00Z')
+  if(now<new Date(lastGroup.getTime()+2*3600000))return 'groups'
+  var rounds=['r32','r16','qf','sf','final']
+  for(var i=0;i<rounds.length;i++){
+    var rd=rounds[i]
+    var rdDate=new Date(KNOCKOUT_DATES[rd].getTime()+3*24*3600000)
+    if(now<rdDate)return rd
+  }
+  return 'final'
+}
+
 export default function App(){
   var [screen,setScreen]=useState('home')
   var [currentPlayer,setPlayer]=useState(null)
@@ -487,7 +501,7 @@ export default function App(){
   var [realStandings,setRealStandings]=useState(null)
   var [loading,setLoading]=useState(false)
   var [saving,setSaving]=useState(false)
-  var [activeTab,setActiveTab]=useState('groups')
+  var [activeTab,setActiveTab]=useState(getActiveTab())
   var [error,setError]=useState('')
 
   useEffect(function(){
@@ -555,7 +569,7 @@ export default function App(){
     if(!row){var np=emptyProde();np._pass=pass;await dbUpsert(name,np);row=await dbGetOne(name)}
     else if(row.prode._pass!==pass){setError('Contrasena incorrecta');setLoading(false);return}
     setPlayer(name);setProdeState(row.prode);await fetchAll()
-    setScreen(name===ADMIN?'admin':'prode');setNameInput('');setPassInput('');setActiveTab('groups');setLoading(false)
+    setScreen(name===ADMIN?'admin':'prode');setNameInput('');setPassInput('');setActiveTab(getActiveTab());setLoading(false)
   }
 
   async function saveProde(newProde){setProdeState(newProde);setSaving(true);await dbUpsert(currentPlayer,newProde);setSaving(false);fetchAll()}
@@ -638,7 +652,7 @@ export default function App(){
                 <span style={{fontSize:16,minWidth:26}}>{i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'}</span>
                 <div style={{flex:1}}><span style={{fontWeight:600}}>{p.player_name}</span>{ch&&<span style={{fontSize:11,color:C.gray,marginLeft:6}}>{ch.n}</span>}</div>
                 <span style={{fontWeight:700,color:C.blue,fontSize:14}}>{sc} pts</span>
-                <button onClick={async function(){setLoading(true);var row=await dbGetOne(p.player_name);setPlayer(p.player_name);setProdeState(row?row.prode:emptyProde());setScreen('view');setActiveTab('groups');setLoading(false)}} style={sSmallBtn(C.blue)}>Ver</button>
+                <button onClick={async function(){setLoading(true);var row=await dbGetOne(p.player_name);setPlayer(p.player_name);setProdeState(row?row.prode:emptyProde());setScreen('view');setActiveTab(getActiveTab());setLoading(false)}} style={sSmallBtn(C.blue)}>Ver</button>
               </div>
             )
           })}
@@ -1002,6 +1016,82 @@ function AdminPanel(props){
               </div>)
             })}
             <button style={sBtn(C.green)} onClick={handleSave} disabled={saving}>{saving?'Guardando...':'Guardar resultados manuales'}</button>
+
+            {/* FASES ELIMINATORIAS */}
+            <div style={{marginTop:16,borderTop:'2px solid '+C.border,paddingTop:12}}>
+              <div style={{fontSize:13,fontWeight:500,color:C.blue,marginBottom:10}}>Estado de fases eliminatorias</div>
+
+              {/* Terceros clasificados */}
+              {results.real_standings&&results.real_standings.thirds&&results.real_standings.thirds.length>0&&(
+                <div style={{background:'#f0f8ff',border:'1px solid '+C.blue,borderRadius:8,padding:'8px 10px',marginBottom:10,fontSize:12}}>
+                  <div style={{fontWeight:600,color:C.blue,marginBottom:4}}>Terceros clasificados ({results.real_standings.thirds.length}/8)</div>
+                  {results.real_standings.thirds.map(function(t,i){
+                    return(<div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'2px 0'}}>
+                      <span style={{minWidth:16,color:C.gray}}>{i+1}.</span>
+                      <img src={flag(t.f)} alt={t.n} style={{width:16,height:11}}/>
+                      <span>{t.n}</span>
+                      <span style={{color:C.gray,fontSize:10}}>{t.pts}pts {t.gd>0?'+':''}{t.gd}dg</span>
+                    </div>)
+                  })}
+                </div>
+              )}
+
+              {/* 16avos */}
+              {['r32','r16','qf','sf','final'].map(function(round){
+                var labels={r32:'16avos (Round of 32)',r16:'Octavos',qf:'Cuartos',sf:'Semis',final:'Final'}
+                var roundKeys=Object.keys(results).filter(function(k){return k.startsWith(round+'_')&&!k.includes('_score')})
+                var scoreKeys=Object.keys(results).filter(function(k){return k.startsWith(round+'_')&&k.includes('_score')})
+                if(round==='r32'&&(!results.real_standings||!results.real_standings.classified)){
+                  return(<div key={round} style={{marginBottom:8,padding:'6px 10px',background:'#fff3e0',border:'1px solid '+C.gold,borderRadius:6,fontSize:12}}>
+                    <span style={{color:C.gold,fontWeight:500}}>⏳ {labels[round]}: </span>
+                    <span style={{color:C.gray}}>Esperando standings reales</span>
+                  </div>)
+                }
+                return(<div key={round} style={{marginBottom:8}}>
+                  <div style={{fontSize:12,fontWeight:600,color:C.blue,marginBottom:4,borderBottom:'1px solid '+C.border,paddingBottom:2}}>{labels[round]}</div>
+                  {round==='r32'&&ROUND_32_PAIRS.map(function(pair,idx){
+                    var id='r32_'+idx
+                    var res=results[id]
+                    var score=results[id+'_score']
+                    var classified=results.real_standings&&results.real_standings.classified
+                    var thirds=results.real_standings&&results.real_standings.thirds
+                    function getTeam(g,pos){
+                      if(g==='3rd')return thirds&&thirds[pos]
+                      return classified&&classified[g]&&classified[g][pos]
+                    }
+                    var t1=getTeam(pair[0],pair[1])
+                    var t2=getTeam(pair[2],pair[3])
+                    var n1=t1?t1.n:'Por definir'
+                    var n2=t2?t2.n:'Por definir'
+                    return(<div key={id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',fontSize:11}}>
+                      <span style={{minWidth:50,color:C.gray}}>{id}</span>
+                      {t1&&<img src={flag(t1.f)} alt="" style={{width:14,height:10}}/>}
+                      <span style={{flex:1,color:t1?C.blue:C.gray}}>{n1}</span>
+                      <span style={{color:C.gray}}>vs</span>
+                      {t2&&<img src={flag(t2.f)} alt="" style={{width:14,height:10}}/>}
+                      <span style={{flex:1,color:t2?C.blue:C.gray}}>{n2}</span>
+                      {score?<span style={{color:C.green,fontWeight:500}}>{score.a}-{score.b}</span>:
+                       res?<span style={{color:C.gold,fontSize:10}}>ganador: {res.n}</span>:
+                       <span style={{color:C.gray,fontSize:10}}>pendiente</span>}
+                    </div>)
+                  })}
+                  {round!=='r32'&&roundKeys.length===0&&(
+                    <div style={{fontSize:11,color:C.gray,padding:'3px 0'}}>Sin resultados aún</div>
+                  )}
+                  {round!=='r32'&&roundKeys.map(function(k){
+                    var score=results[k+'_score']
+                    var winner=results[k]
+                    return(<div key={k} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',fontSize:11}}>
+                      <span style={{minWidth:50,color:C.gray}}>{k}</span>
+                      {winner&&<img src={flag(winner.f)} alt="" style={{width:14,height:10}}/>}
+                      <span style={{color:winner?C.blue:C.gray}}>{winner?winner.n:'pendiente'}</span>
+                      {score&&<span style={{color:C.green,fontWeight:500,marginLeft:4}}>{score.a}-{score.b}</span>}
+                    </div>)
+                  })}
+                </div>)
+              })}
+            </div>
+
           </div>
         )}
       </div>
