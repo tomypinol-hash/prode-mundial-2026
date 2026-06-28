@@ -198,20 +198,24 @@ function calcScore(prode,results){
   if(!prode)return 0
   var pts=0;results=results||{}
   GROUP_MATCHES.forEach(function(m){pts+=calcMatchPoints(prode.scores&&prode.scores[m.id],results[m.id])})
-  // Logica eliminatorias: ganador correcto = p pts, marcador exacto = p*2 pts
-  var rounds=[{k:'r32',p:1},{k:'r16',p:2},{k:'qf',p:3},{k:'sf',p:3},{k:'final',p:3}]
+  // Logica eliminatorias: ganador correcto + marcador exacto son independientes y se suman
+  // 16avos: 1pt ganador + 2pts exacto = 3pts max
+  // Octavos: 2pts ganador + 4pts exacto = 6pts max
+  // Cuartos/Semis/Final: 3pts ganador + 6pts exacto = 9pts max
+  var rounds=[{k:'r32',p:1,pe:2},{k:'r16',p:2,pe:4},{k:'qf',p:3,pe:6},{k:'sf',p:3,pe:6},{k:'final',p:3,pe:6}]
   rounds.forEach(function(r){
     var rd=prode[r.k]||{},ks=prode.knockoutScores&&prode.knockoutScores[r.k]||{}
     Object.keys(rd).forEach(function(id){
       var pred=rd[id],real=results[id],realScore=results[id+'_score']
-      if(!pred||!real)return
-      if(pred.n!==real.n)return
-      var predSc=ks[id],exacto=false
+      if(!real)return
+      // Punto por acertar ganador (independiente)
+      if(pred&&pred.n===real.n)pts+=r.p
+      // Puntos por marcador exacto (independiente)
+      var predSc=ks[id]
       if(predSc&&realScore){
         var pa=parseInt(predSc.a),pb=parseInt(predSc.b),ra=parseInt(realScore.a),rb=parseInt(realScore.b)
-        if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)exacto=true
+        if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)pts+=r.pe
       }
-      pts+=exacto?r.p*2:r.p
     })
   })
   return pts
@@ -832,22 +836,28 @@ function KnockoutTab(props){
           </div>
         )}
         {realScore&&(function(){
-          var roundPts={r32:1,r16:2,qf:3,sf:3,final:3}
-          var p=roundPts[round]||1
+          var roundP={r32:{p:1,pe:2},r16:{p:2,pe:4},qf:{p:3,pe:6},sf:{p:3,pe:6},final:{p:3,pe:6}}
+          var rp=roundP[round]||{p:1,pe:2}
           var acertoGanador=w&&realWinner&&w.n===realWinner.n
-          var exacto=false
+          var acertoExacto=false
           if(sc&&realScore){
             var pa=parseInt(sc.a),pb=parseInt(sc.b),ra=parseInt(realScore.a),rb=parseInt(realScore.b)
-            if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)exacto=true
+            if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)acertoExacto=true
           }
-          var koPts=acertoGanador?(exacto?p*2:p):0
-          var bg=koPts===p*2?'#eafff0':koPts>0?'#fff8e1':'#ffeaea'
-          var col=koPts===p*2?C.green:koPts>0?C.gold:C.red
-          var txt=koPts===p*2?'✅ +'+koPts+'pts exacto':koPts>0?'👍 +'+koPts+'pt ganador':'❌ 0pts'
+          var ptsGanador=acertoGanador?rp.p:0
+          var ptsExacto=acertoExacto?rp.pe:0
+          var total=ptsGanador+ptsExacto
+          var bg=total===(rp.p+rp.pe)?'#eafff0':total>0?'#fff8e1':'#ffeaea'
+          var col=total===(rp.p+rp.pe)?C.green:total>0?C.gold:C.red
+          var partes=[]
+          if(acertoGanador)partes.push('+'+rp.p+'pt ganador')
+          if(acertoExacto)partes.push('+'+rp.pe+'pts exacto')
+          var txt=total>0?'✅ '+partes.join(' '):realWinner?'❌ 0pts':''
+          if(!txt)return null
           return(<div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:bg,borderRadius:6,fontSize:11,margin:'0 6px 6px 6px'}}>
             <span style={{color:C.gray}}>Real:</span>
             <span style={{fontWeight:700}}>{realScore.a} - {realScore.b}</span>
-            {realWinner&&<span style={{marginLeft:'auto',fontWeight:700,color:col}}>{txt}</span>}
+            <span style={{marginLeft:'auto',fontWeight:700,color:col}}>{txt}</span>
           </div>)
         })()}
       </div>)
