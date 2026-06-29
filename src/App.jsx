@@ -1058,6 +1058,13 @@ function AdminPanel(props){
     <div style={{maxWidth:600,margin:'0 auto',padding:'8px'}}>
       <div style={sHeader}>
         <div style={{fontSize:18,fontWeight:600}}>Panel Admin - Tomy</div>
+        {(function(){
+          var fase=getActiveTab()
+          var faseLabel={groups:'Fase de Grupos',r32:'16avos de Final',r16:'Octavos de Final',qf:'Cuartos de Final',sf:'Semifinales',final:'Final'}
+          return(<div style={{fontSize:13,fontWeight:500,background:'rgba(255,255,255,.15)',borderRadius:8,padding:'4px 12px',marginTop:6,display:'inline-block'}}>
+            ⚽ Fase actual: {faseLabel[fase]||fase}
+          </div>)
+        })()}
         <div style={{display:'flex',gap:8,justifyContent:'center',marginTop:8}}>
           <button onClick={function(){setScreen('home');fetchAll()}} style={{background:'rgba(255,255,255,.2)',color:'#fff',border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontSize:12}}>Inicio</button>
           <button onClick={function(){setScreen('live')}} style={{background:'rgba(255,255,255,.2)',color:'#fff',border:'none',borderRadius:8,padding:'4px 12px',cursor:'pointer',fontSize:12}}>En Vivo</button>
