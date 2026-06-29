@@ -1210,8 +1210,9 @@ function AdminPanel(props){
                   <div style={{fontSize:12,fontWeight:600,color:C.blue,marginBottom:6,borderBottom:'1px solid '+C.border,paddingBottom:2}}>{labels[round]}</div>
                   {Array.from({length:count},function(_,idx){
                     var id=round==='final'?'final_m':round+'_'+idx
-                    var r=localResults[id]||{}
-                    var sc=localResults[id+'_score']||{a:'',b:''}
+                    var r=localResults[id]||props.results&&props.results[id]||{}
+                    var sc=localResults[id+'_score']||props.results&&props.results[id+'_score']||{a:'',b:''}
+                    var pen=localResults[id+'_penalty']||props.results&&props.results[id+'_penalty']||null
                     var t1=null,t2=null
                     if(pairs&&classified){t1=getTeam(pairs[idx][0],pairs[idx][1]);t2=getTeam(pairs[idx][2],pairs[idx][3])}
                     else{t1=localResults[round==='r16'?'r32_'+(idx*2):round==='qf'?'r16_'+(idx*2):round==='sf'?'qf_'+(idx*2):'sf_0']||null;t2=localResults[round==='r16'?'r32_'+(idx*2+1):round==='qf'?'r16_'+(idx*2+1):round==='sf'?'qf_'+(idx*2+1):'sf_1']||null}
@@ -1238,6 +1239,7 @@ function AdminPanel(props){
                           }} style={{padding:'1px 6px',border:'1px solid '+(isW?C.green:C.border),borderRadius:3,background:isW?'#eafff0':'#fff',color:isW?C.green:C.gray,cursor:'pointer',fontSize:10}}>{t.n}</button>)
                         })}
                         {r&&r.n&&<span style={{color:C.green,marginLeft:4}}>✓ {r.n}</span>}
+                        {pen&&<span style={{color:C.gray,marginLeft:4}}>⚡ pen: {pen.a}-{pen.b}</span>}
                       </div>
                     </div>)
                   })}
