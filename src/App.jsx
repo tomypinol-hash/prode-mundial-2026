@@ -122,10 +122,11 @@ const GROUP_MATCHES = [
 ]
 
 const KNOCKOUT_DATES = {
-  r16:   new Date('2026-07-04T17:00:00-03:00'),
+  r32:   new Date('2026-06-28T16:00:00-03:00'),
+  r16:   new Date('2026-07-04T14:00:00-03:00'),
   qf:    new Date('2026-07-09T17:00:00-03:00'),
-  sf:    new Date('2026-07-14T17:00:00-03:00'),
-  final: new Date('2026-07-18T17:00:00-03:00'),
+  sf:    new Date('2026-07-14T16:00:00-03:00'),
+  final: new Date('2026-07-19T16:00:00-03:00'),
 }
 
 // Fechas individuales de cada partido eliminatorio
