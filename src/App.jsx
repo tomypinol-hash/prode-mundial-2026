@@ -1113,29 +1113,8 @@ function AdminPanel(props){
                 })}
               </div>
             )}
-            <div style={{fontSize:13,fontWeight:500,color:C.blue,marginBottom:8}}>Cargar manualmente (backup)</div>
-            {GROUPS.map(function(g){
-              var gMatches=GROUP_MATCHES.filter(function(m){return m.g===g.name})
-              return(<div key={g.name} style={{marginBottom:12}}>
-                <div style={{fontSize:12,fontWeight:600,color:C.blue,marginBottom:6,borderBottom:'1px solid '+C.border,paddingBottom:4}}>Grupo {g.name}</div>
-                {gMatches.map(function(m){
-                  var ta=g.teams[m.a],tb=g.teams[m.b],r=localResults[m.id]||{a:'',b:''}
-                  return(<div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',fontSize:12}}>
-                    <img src={flag(ta.f)} alt={ta.n} style={{width:16,height:11,objectFit:'cover'}}/>
-                    <span style={{width:65,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ta.n}</span>
-                    <input type="number" min="0" max="20" value={r.a} onChange={function(e){setResult(m.id,'a',e.target.value)}} style={{width:34,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
-                    <span>-</span>
-                    <input type="number" min="0" max="20" value={r.b} onChange={function(e){setResult(m.id,'b',e.target.value)}} style={{width:34,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
-                    <img src={flag(tb.f)} alt={tb.n} style={{width:16,height:11,objectFit:'cover'}}/>
-                    <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tb.n}</span>
-                  </div>)
-                })}
-              </div>)
-            })}
-            <button style={sBtn(C.green)} onClick={handleSave} disabled={saving}>{saving?'Guardando...':'Guardar resultados manuales'}</button>
-
             {/* FASES ELIMINATORIAS */}
-            <div style={{marginTop:16,borderTop:'2px solid '+C.border,paddingTop:12}}>
+            <div style={{marginTop:4,borderTop:'2px solid '+C.border,paddingTop:12}}>
               <div style={{fontSize:13,fontWeight:500,color:C.blue,marginBottom:10}}>Fases eliminatorias — carga manual</div>
 
               {/* Terceros clasificados */}
@@ -1203,6 +1182,30 @@ function AdminPanel(props){
                   })}
                 </div>)
               })}
+            </div>
+
+            {/* GRUPOS - carga manual (backup) */}
+            <div style={{marginTop:16,borderTop:'2px solid '+C.border,paddingTop:12}}>
+              <div style={{fontSize:13,fontWeight:500,color:C.blue,marginBottom:8}}>Grupos — carga manual (backup)</div>
+              {GROUPS.map(function(g){
+                var gMatches=GROUP_MATCHES.filter(function(m){return m.g===g.name})
+                return(<div key={g.name} style={{marginBottom:12}}>
+                  <div style={{fontSize:12,fontWeight:600,color:C.blue,marginBottom:6,borderBottom:'1px solid '+C.border,paddingBottom:4}}>Grupo {g.name}</div>
+                  {gMatches.map(function(m){
+                    var ta=g.teams[m.a],tb=g.teams[m.b],r=localResults[m.id]||{a:'',b:''}
+                    return(<div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',fontSize:12}}>
+                      <img src={flag(ta.f)} alt={ta.n} style={{width:16,height:11,objectFit:'cover'}}/>
+                      <span style={{width:65,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ta.n}</span>
+                      <input type="number" min="0" max="20" value={r.a} onChange={function(e){setResult(m.id,'a',e.target.value)}} style={{width:34,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+                      <span>-</span>
+                      <input type="number" min="0" max="20" value={r.b} onChange={function(e){setResult(m.id,'b',e.target.value)}} style={{width:34,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+                      <img src={flag(tb.f)} alt={tb.n} style={{width:16,height:11,objectFit:'cover'}}/>
+                      <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tb.n}</span>
+                    </div>)
+                  })}
+                </div>)
+              })}
+              <button style={sBtn(C.green)} onClick={handleSave} disabled={saving}>{saving?'Guardando...':'Guardar resultados manuales'}</button>
             </div>
 
           </div>
