@@ -925,7 +925,7 @@ function KnockoutTab(props){
   return(
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-        {locked?<span style={sLock}>Cerrado</span>:(tl?<span style={{color:C.gold,fontSize:12,fontWeight:500}}>{tl} para el cierre</span>:<span/>)}
+        {roundLocked?<span style={sLock}>Fase cerrada</span>:<span/>}
         {realStandings?<span style={{fontSize:11,color:C.green}}>✅ Bracket con datos reales</span>:<span style={{fontSize:11,color:C.gold}}>⏳ Usando pronósticos</span>}
       </div>
       {items}
@@ -939,7 +939,7 @@ function FinalTab(props){
   if(readonly&&!isOwn&&!isRoundLocked('final')){
     return <PrivadoBloqueo round='final'/>
   }
-  var locked=isRoundLocked('final'),tl=timeLeftStr(KNOCKOUT_DATES.final)
+  var locked=isMatchLocked_KO('final_m'),tl=timeLeftKOStr('final_m')
   var sf0w=(prode.sf&&prode.sf.sf_0)||null,sf1w=(prode.sf&&prode.sf.sf_1)||null
   var qf0=(prode.qf&&prode.qf.qf_0)||null,qf1=(prode.qf&&prode.qf.qf_1)||null
   var qf2=(prode.qf&&prode.qf.qf_2)||null,qf3=(prode.qf&&prode.qf.qf_3)||null
