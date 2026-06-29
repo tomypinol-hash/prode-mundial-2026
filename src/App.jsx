@@ -866,6 +866,43 @@ function KnockoutTab(props){
   if(readonly&&!isOwn&&privadoRounds.includes(round)&&!isRoundLocked(round)){
     return <PrivadoBloqueo round={round}/>
   }
+  // Live scores para partidos eliminatorios en curso
+  var [koLiveScores,setKoLiveScores]=useState({})
+  useEffect(function(){
+    async function fetchKoLive(){
+      var liveData=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&status=1H-2H-HT-ET')
+      if(!liveData)return
+      var live={}
+      var count2=round==='final'?1:(ROUND_COUNTS[round]||0)
+      for(var idx2=0;idx2<count2;idx2++){
+        var mid=round==='final'?'final_m':round+'_'+idx2
+        var matchDate=MATCH_DATES[mid]
+        if(!matchDate)continue
+        var now2=new Date()
+        var endTime=new Date(matchDate.getTime()+130*60000)
+        if(now2<matchDate||now2>endTime)continue
+        // Buscar los equipos de este partido
+        var teams2=getTeamsForMatch(round,idx2,prode,realStandings)
+        if(!teams2||!teams2[0]||!teams2[1])continue
+        var n1=teams2[0].n,n2=teams2[1].n
+        liveData.forEach(function(f){
+          var ha=f.goals.home,hb=f.goals.away
+          if(ha===null||hb===null)return
+          var homeName=API_TEAM_MAP[f.teams.home.name]||f.teams.home.name
+          var awayName=API_TEAM_MAP[f.teams.away.name]||f.teams.away.name
+          if((n1===homeName&&n2===awayName)||(n1===awayName&&n2===homeName)){
+            var scoreA=n1===homeName?String(ha):String(hb)
+            var scoreB=n1===homeName?String(hb):String(ha)
+            live[mid]={a:scoreA,b:scoreB,elapsed:f.fixture.status.elapsed,isLive:true}
+          }
+        })
+      }
+      setKoLiveScores(live)
+    }
+    fetchKoLive()
+    var t=setInterval(fetchKoLive,60000)
+    return function(){clearInterval(t)}
+  },[round])
   var roundLocked=isRoundLocked(round),count=ROUND_COUNTS[round],items=[]
   function setKnockoutScore(id,side,val,ta,tb){
     if(isMatchLocked_KO(id)||readonly)return
@@ -892,10 +929,12 @@ function KnockoutTab(props){
       var sc=(prode.knockoutScores&&prode.knockoutScores[round]&&prode.knockoutScores[round][id])||null
       var realWinner=results&&results[id]||null
       var realScore=results&&results[id+'_score']||null
+      var koLive=koLiveScores[id]||null
       // Para r32, cada partido tiene su propio cierre
       var matchLocked=isMatchLocked_KO(id)
       var matchTl=timeLeftKOStr(id)
-      items.push(<div key={id} style={Object.assign({},sCard,{marginBottom:8})}>
+      var cardBorder=koLive?C.red:matchLocked?C.border:C.blue
+      items.push(<div key={id} style={Object.assign({},sCard,{marginBottom:8,borderColor:cardBorder})}>
         <div style={{background:C.red,color:'#fff',fontSize:11,textAlign:'center',padding:'3px'}}>{ROUND_LABELS[round]} {idx+1}</div>
         {[ta,tb].map(function(t,ti){
           var isW=w&&t&&w.n===t.n
@@ -912,10 +951,22 @@ function KnockoutTab(props){
             <span style={{color:C.gray}}>-</span>
             <input type="number" min="0" max="20" value={sc?sc.b:''} onChange={function(e){setKnockoutScore(id,'b',e.target.value,ta,tb)}} disabled={matchLocked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
             <img src={flag(tb.f)} alt="" style={{width:16,height:11}}/>
-            {matchLocked?<span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>:matchTl&&<span style={{color:C.gold,fontSize:10,marginLeft:'auto'}}>{matchTl}</span>}
+            {koLive?(
+              <span style={{marginLeft:'auto',fontSize:11,fontWeight:700,color:C.red}}>⚽ EN VIVO {koLive.elapsed?koLive.elapsed+"'":''}</span>
+            ):matchLocked?(
+              <span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>
+            ):matchTl&&(
+              <span style={{color:C.gold,fontSize:10,marginLeft:'auto'}}>{matchTl}</span>
+            )}
           </div>
         )}
-        {realScore&&(function(){
+        {koLive&&(
+          <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:'#fff8f8',borderRadius:6,fontSize:11,margin:'0 6px 6px 6px',border:'1px solid '+C.red}}>
+            <span style={{color:C.gray}}>Parcial:</span>
+            <span style={{fontWeight:700,color:C.red}}>{koLive.a} - {koLive.b}</span>
+          </div>
+        )}
+        {!koLive&&realScore&&(function(){
           var roundP={r32:{p:1,pe:2},r16:{p:2,pe:4},qf:{p:3,pe:6},sf:{p:3,pe:6},final:{p:3,pe:6}}
           var rp=roundP[round]||{p:1,pe:2}
           var acertoGanador=w&&realWinner&&w.n===realWinner.n
