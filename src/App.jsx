@@ -122,51 +122,51 @@ const GROUP_MATCHES = [
 ]
 
 const KNOCKOUT_DATES = {
-  r32:   new Date('2026-06-28T16:00:00-03:00'),
-  r16:   new Date('2026-07-04T14:00:00-03:00'),
-  qf:    new Date('2026-07-09T17:00:00-03:00'),
-  sf:    new Date('2026-07-14T16:00:00-03:00'),
-  final: new Date('2026-07-19T16:00:00-03:00'),
+  r32:   new Date('2026-06-28T16:00:00-03:00'), // primer partido r32
+  r16:   new Date('2026-07-04T14:00:00-03:00'), // primer partido r16
+  qf:    new Date('2026-07-09T17:00:00-03:00'), // primer partido qf
+  sf:    new Date('2026-07-14T16:00:00-03:00'), // primer partido sf
+  final: new Date('2026-07-19T16:00:00-03:00'), // final
 }
 
-// Fechas individuales de cada partido eliminatorio
+// Fechas individuales de cada partido eliminatorio (hora Argentina, fuente: FIFA oficial)
 const MATCH_DATES = {
-  // 16avos (Jun 28 - Jul 3)
-  r32_0:  new Date('2026-06-28T16:00:00-03:00'), // Sudafrica vs Canada
-  r32_1:  new Date('2026-06-29T17:30:00-03:00'), // Alemania vs Paraguay
-  r32_2:  new Date('2026-06-29T22:00:00-03:00'), // Paises Bajos vs Marruecos
-  r32_3:  new Date('2026-06-29T14:00:00-03:00'), // Brasil vs Japon
-  r32_4:  new Date('2026-06-30T18:00:00-03:00'), // Francia vs Suecia
-  r32_5:  new Date('2026-06-30T14:00:00-03:00'), // Costa de Marfil vs Noruega
-  r32_6:  new Date('2026-06-30T22:00:00-03:00'), // Mexico vs Ecuador
-  r32_7:  new Date('2026-07-01T13:00:00-03:00'), // Inglaterra vs RD Congo
-  r32_8:  new Date('2026-07-01T21:00:00-03:00'), // EE.UU. vs Bosnia
-  r32_9:  new Date('2026-07-01T17:00:00-03:00'), // Belgica vs Senegal
-  r32_10: new Date('2026-07-02T21:00:00-03:00'), // Portugal vs Croacia          8pm ET
-  r32_11: new Date('2026-07-02T16:00:00-03:00'), // Espana vs Austria
-  r32_12: new Date('2026-07-03T01:00:00-03:00'), // Suiza vs Argelia             12am ET
-  r32_13: new Date('2026-07-03T20:00:00-03:00'), // Argentina vs Cabo Verde      7pm ET
-  r32_14: new Date('2026-07-03T22:30:00-03:00'), // Colombia vs Ghana
-  r32_15: new Date('2026-07-03T13:00:00-03:00'), // Australia vs Egipto          12pm ET
+  // 16avos
+  r32_0:  new Date('2026-06-28T16:00:00-03:00'), // Sudafrica vs Canada (lun 28/6 16hs)
+  r32_3:  new Date('2026-06-29T14:00:00-03:00'), // Brasil vs Japon (lun 29/6 14hs)
+  r32_1:  new Date('2026-06-29T17:30:00-03:00'), // Alemania vs Paraguay (lun 29/6 17:30hs)
+  r32_2:  new Date('2026-06-29T22:00:00-03:00'), // Paises Bajos vs Marruecos (lun 29/6 22hs)
+  r32_5:  new Date('2026-06-30T14:00:00-03:00'), // Costa de Marfil vs Noruega (mar 30/6 14hs)
+  r32_4:  new Date('2026-06-30T18:00:00-03:00'), // Francia vs Suecia (mar 30/6 18hs)
+  r32_6:  new Date('2026-06-30T22:00:00-03:00'), // Mexico vs Ecuador (mar 30/6 22hs)
+  r32_7:  new Date('2026-07-01T13:00:00-03:00'), // Inglaterra vs RD Congo (mie 1/7 13hs)
+  r32_9:  new Date('2026-07-01T17:00:00-03:00'), // Belgica vs Senegal (mie 1/7 17hs)
+  r32_8:  new Date('2026-07-01T21:00:00-03:00'), // EE.UU. vs Bosnia (mie 1/7 21hs)
+  r32_11: new Date('2026-07-02T16:00:00-03:00'), // Espana vs Austria (jue 2/7 16hs)
+  r32_10: new Date('2026-07-02T20:00:00-03:00'), // Portugal vs Croacia (jue 2/7 20hs)
+  r32_12: new Date('2026-07-03T00:00:00-03:00'), // Suiza vs Argelia (vie 3/7 00hs)
+  r32_15: new Date('2026-07-03T15:00:00-03:00'), // Australia vs Egipto (vie 3/7 15hs)
+  r32_13: new Date('2026-07-03T19:00:00-03:00'), // Argentina vs Cabo Verde (vie 3/7 19hs)
+  r32_14: new Date('2026-07-03T22:30:00-03:00'), // Colombia vs Ghana (vie 3/7 22:30hs)
   // Octavos (Jul 4-7)
-  r16_0:  new Date('2026-07-04T14:00:00-03:00'),
-  r16_1:  new Date('2026-07-04T18:00:00-03:00'),
-  r16_2:  new Date('2026-07-05T17:00:00-03:00'),
-  r16_3:  new Date('2026-07-05T21:00:00-03:00'),
-  r16_4:  new Date('2026-07-06T16:00:00-03:00'), // M93 3pm ET Dallas
-  r16_5:  new Date('2026-07-06T21:00:00-03:00'), // M94 8pm ET Seattle
-  r16_6:  new Date('2026-07-07T13:00:00-03:00'), // M95 12pm ET Atlanta
-  r16_7:  new Date('2026-07-07T17:00:00-03:00'), // M96 4pm ET Vancouver
-  // Cuartos (Jul 9-10)
-  qf_0:   new Date('2026-07-09T17:00:00-03:00'), // M97 4pm ET Boston
-  qf_1:   new Date('2026-07-09T22:00:00-03:00'), // M100 9pm ET Kansas City
-  qf_2:   new Date('2026-07-10T16:00:00-03:00'), // M98 3pm ET Los Angeles
-  qf_3:   new Date('2026-07-10T18:00:00-03:00'), // M99 5pm ET Miami
+  r16_0:  new Date('2026-07-04T14:00:00-03:00'), // sab 4/7 14hs Houston
+  r16_1:  new Date('2026-07-04T18:00:00-03:00'), // sab 4/7 18hs Philadelphia
+  r16_2:  new Date('2026-07-05T17:00:00-03:00'), // dom 5/7 17hs Nueva Jersey
+  r16_3:  new Date('2026-07-05T21:00:00-03:00'), // dom 5/7 21hs Ciudad de Mexico
+  r16_4:  new Date('2026-07-06T16:00:00-03:00'), // lun 6/7 16hs Dallas
+  r16_5:  new Date('2026-07-06T21:00:00-03:00'), // lun 6/7 21hs Seattle
+  r16_6:  new Date('2026-07-07T13:00:00-03:00'), // mar 7/7 13hs Atlanta
+  r16_7:  new Date('2026-07-07T17:00:00-03:00'), // mar 7/7 17hs Vancouver
+  // Cuartos (Jul 9-11)
+  qf_0:   new Date('2026-07-09T17:00:00-03:00'), // jue 9/7 17hs Boston
+  qf_1:   new Date('2026-07-10T16:00:00-03:00'), // vie 10/7 16hs Los Angeles
+  qf_2:   new Date('2026-07-11T18:00:00-03:00'), // sab 11/7 18hs Miami
+  qf_3:   new Date('2026-07-11T22:00:00-03:00'), // sab 11/7 22hs Kansas City
   // Semis (Jul 14-15)
-  sf_0:   new Date('2026-07-14T16:00:00-03:00'), // M101 3pm ET Dallas
-  sf_1:   new Date('2026-07-15T16:00:00-03:00'), // M102 3pm ET Atlanta
+  sf_0:   new Date('2026-07-14T16:00:00-03:00'), // mar 14/7 16hs Dallas
+  sf_1:   new Date('2026-07-15T16:00:00-03:00'), // mie 15/7 16hs Atlanta
   // Final (Jul 19)
-  final_m: new Date('2026-07-19T16:00:00-03:00'), // Final 3pm ET New York NJ
+  final_m: new Date('2026-07-19T16:00:00-03:00'), // dom 19/7 16hs Nueva Jersey
 }
 
 const LOCK_MINS = 20
