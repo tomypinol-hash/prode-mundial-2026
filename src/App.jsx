@@ -361,18 +361,37 @@ async function fetchRealStandings(){
   return{classified,thirds}
 }
 
-async function fetchKnockoutResults(round){
+async function fetchKnockoutResults(round,realStandings){
   var roundMap={r32:'Round of 32',r16:'Round of 16',qf:'Quarter-finals',sf:'Semi-finals',final:'Final'}
   var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&round='+encodeURIComponent(roundMap[round])+'&status=FT')
   if(!data)return{}
   var results={}
-  data.forEach(function(f,i){
+  data.forEach(function(f){
     var ha=f.goals.home,hb=f.goals.away
     if(ha===null||hb===null)return
-    var id=round+'_'+i
-    var winner=f.teams.home.winner?teamObj(f.teams.home.name):teamObj(f.teams.away.name)
-    results[id]=winner
-    results[id+'_score']={a:String(ha),b:String(hb)}
+    var homeName=API_TEAM_MAP[f.teams.home.name]||f.teams.home.name
+    var awayName=API_TEAM_MAP[f.teams.away.name]||f.teams.away.name
+    var winnerName=f.teams.home.winner?homeName:awayName
+    // Buscar el id correcto en el bracket por nombre de equipos
+    var matchId=null
+    if(round==='r32'&&realStandings){
+      for(var idx=0;idx<ROUND_32_PAIRS.length;idx++){
+        var pair=ROUND_32_PAIRS[idx]
+        function getN(g,pos){
+          if(g==='3rd')return realStandings.thirds&&realStandings.thirds[pos]&&realStandings.thirds[pos].n
+          return realStandings.classified&&realStandings.classified[g]&&realStandings.classified[g][pos]&&realStandings.classified[g][pos].n
+        }
+        var n1=getN(pair[0],pair[1]),n2=getN(pair[2],pair[3])
+        if((n1===homeName&&n2===awayName)||(n1===awayName&&n2===homeName)){
+          matchId=round+'_'+idx
+          break
+        }
+      }
+    }
+    if(!matchId)return // no matcheó, ignorar
+    var winnerObj=teamObj(winnerName)
+    results[matchId]=winnerObj
+    results[matchId+'_score']={a:String(ha),b:String(hb)}
   })
   return results
 }
@@ -608,7 +627,7 @@ export default function App(){
     var koResults={}
     var rounds=['r32','r16','qf','sf','final']
     for(var i=0;i<rounds.length;i++){
-      var kr=await fetchKnockoutResults(rounds[i])
+      var kr=await fetchKnockoutResults(rounds[i],standings)
       Object.assign(koResults,kr)
     }
     var cur=await dbGetResults()
@@ -1108,7 +1127,7 @@ function AdminPanel(props){
 
             {/* FASES ELIMINATORIAS */}
             <div style={{marginTop:16,borderTop:'2px solid '+C.border,paddingTop:12}}>
-              <div style={{fontSize:13,fontWeight:500,color:C.blue,marginBottom:10}}>Estado de fases eliminatorias</div>
+              <div style={{fontSize:13,fontWeight:500,color:C.blue,marginBottom:10}}>Fases eliminatorias — carga manual</div>
 
               {/* Terceros clasificados */}
               {results.real_standings&&results.real_standings.thirds&&results.real_standings.thirds.length>0&&(
@@ -1125,56 +1144,52 @@ function AdminPanel(props){
                 </div>
               )}
 
-              {/* 16avos */}
+              {/* Carga manual por fase */}
               {['r32','r16','qf','sf','final'].map(function(round){
-                var labels={r32:'16avos (Round of 32)',r16:'Octavos',qf:'Cuartos',sf:'Semis',final:'Final'}
-                var roundKeys=Object.keys(results).filter(function(k){return k.startsWith(round+'_')&&!k.includes('_score')})
-                var scoreKeys=Object.keys(results).filter(function(k){return k.startsWith(round+'_')&&k.includes('_score')})
-                if(round==='r32'&&(!results.real_standings||!results.real_standings.classified)){
-                  return(<div key={round} style={{marginBottom:8,padding:'6px 10px',background:'#fff3e0',border:'1px solid '+C.gold,borderRadius:6,fontSize:12}}>
-                    <span style={{color:C.gold,fontWeight:500}}>⏳ {labels[round]}: </span>
-                    <span style={{color:C.gray}}>Esperando standings reales</span>
-                  </div>)
+                var labels={r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis',final:'Final'}
+                var counts={r32:16,r16:8,qf:4,sf:2,final:1}
+                var count=counts[round]
+                var classified=localResults.real_standings&&localResults.real_standings.classified
+                var thirds=localResults.real_standings&&localResults.real_standings.thirds
+                function getTeam(g,pos){
+                  if(!classified)return null
+                  if(g==='3rd')return thirds&&thirds[pos]
+                  return classified[g]&&classified[g][pos]
                 }
-                return(<div key={round} style={{marginBottom:8}}>
-                  <div style={{fontSize:12,fontWeight:600,color:C.blue,marginBottom:4,borderBottom:'1px solid '+C.border,paddingBottom:2}}>{labels[round]}</div>
-                  {round==='r32'&&ROUND_32_PAIRS.map(function(pair,idx){
-                    var id='r32_'+idx
-                    var res=results[id]
-                    var score=results[id+'_score']
-                    var classified=results.real_standings&&results.real_standings.classified
-                    var thirds=results.real_standings&&results.real_standings.thirds
-                    function getTeam(g,pos){
-                      if(g==='3rd')return thirds&&thirds[pos]
-                      return classified&&classified[g]&&classified[g][pos]
-                    }
-                    var t1=getTeam(pair[0],pair[1])
-                    var t2=getTeam(pair[2],pair[3])
-                    var n1=t1?t1.n:'Por definir'
-                    var n2=t2?t2.n:'Por definir'
-                    return(<div key={id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',fontSize:11}}>
-                      <span style={{minWidth:50,color:C.gray}}>{id}</span>
-                      {t1&&<img src={flag(t1.f)} alt="" style={{width:14,height:10}}/>}
-                      <span style={{flex:1,color:t1?C.blue:C.gray}}>{n1}</span>
-                      <span style={{color:C.gray}}>vs</span>
-                      {t2&&<img src={flag(t2.f)} alt="" style={{width:14,height:10}}/>}
-                      <span style={{flex:1,color:t2?C.blue:C.gray}}>{n2}</span>
-                      {score?<span style={{color:C.green,fontWeight:500}}>{score.a}-{score.b}</span>:
-                       res?<span style={{color:C.gold,fontSize:10}}>ganador: {res.n}</span>:
-                       <span style={{color:C.gray,fontSize:10}}>pendiente</span>}
-                    </div>)
-                  })}
-                  {round!=='r32'&&roundKeys.length===0&&(
-                    <div style={{fontSize:11,color:C.gray,padding:'3px 0'}}>Sin resultados aún</div>
-                  )}
-                  {round!=='r32'&&roundKeys.map(function(k){
-                    var score=results[k+'_score']
-                    var winner=results[k]
-                    return(<div key={k} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',fontSize:11}}>
-                      <span style={{minWidth:50,color:C.gray}}>{k}</span>
-                      {winner&&<img src={flag(winner.f)} alt="" style={{width:14,height:10}}/>}
-                      <span style={{color:winner?C.blue:C.gray}}>{winner?winner.n:'pendiente'}</span>
-                      {score&&<span style={{color:C.green,fontWeight:500,marginLeft:4}}>{score.a}-{score.b}</span>}
+                var pairs=round==='r32'?ROUND_32_PAIRS:null
+                return(<div key={round} style={{marginBottom:12}}>
+                  <div style={{fontSize:12,fontWeight:600,color:C.blue,marginBottom:6,borderBottom:'1px solid '+C.border,paddingBottom:2}}>{labels[round]}</div>
+                  {Array.from({length:count},function(_,idx){
+                    var id=round==='final'?'final_m':round+'_'+idx
+                    var r=localResults[id]||{}
+                    var sc=localResults[id+'_score']||{a:'',b:''}
+                    var t1=null,t2=null
+                    if(pairs&&classified){t1=getTeam(pairs[idx][0],pairs[idx][1]);t2=getTeam(pairs[idx][2],pairs[idx][3])}
+                    else{t1=localResults[round==='r16'?'r32_'+(idx*2):round==='qf'?'r16_'+(idx*2):round==='sf'?'qf_'+(idx*2):'sf_0']||null;t2=localResults[round==='r16'?'r32_'+(idx*2+1):round==='qf'?'r16_'+(idx*2+1):round==='sf'?'qf_'+(idx*2+1):'sf_1']||null}
+                    var n1=t1?t1.n:'Equipo 1'
+                    var n2=t2?t2.n:'Equipo 2'
+                    return(<div key={id} style={{padding:'4px 0',borderBottom:'1px solid #f5f5f5'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:4,fontSize:11,marginBottom:3}}>
+                        {t1&&<img src={flag(t1.f)} alt="" style={{width:14,height:10}}/>}
+                        <span style={{flex:1,color:C.blue,fontSize:11}}>{n1}</span>
+                        <input type="number" min="0" max="20" value={sc.a} onChange={function(e){setResult(id,'a',e.target.value)}} style={{width:30,padding:'1px',textAlign:'center',border:'1px solid '+C.border,borderRadius:3,fontSize:11}} placeholder="-"/>
+                        <span style={{color:C.gray}}>-</span>
+                        <input type="number" min="0" max="20" value={sc.b} onChange={function(e){setResult(id,'b',e.target.value)}} style={{width:30,padding:'1px',textAlign:'center',border:'1px solid '+C.border,borderRadius:3,fontSize:11}} placeholder="-"/>
+                        {t2&&<img src={flag(t2.f)} alt="" style={{width:14,height:10}}/>}
+                        <span style={{flex:1,color:C.blue,fontSize:11,textAlign:'right'}}>{n2}</span>
+                      </div>
+                      <div style={{display:'flex',gap:4,fontSize:10}}>
+                        <span style={{color:C.gray}}>Ganador:</span>
+                        {[t1,t2].filter(Boolean).map(function(t,ti){
+                          var isW=r&&r.n===t.n
+                          return(<button key={ti} onClick={function(){
+                            var winner={n:t.n,f:t.f}
+                            var sc2=localResults[id+'_score']||{a:'',b:''}
+                            setLocalResults(Object.assign({},localResults,{[id]:winner,[id+'_score']:sc2}))
+                          }} style={{padding:'1px 6px',border:'1px solid '+(isW?C.green:C.border),borderRadius:3,background:isW?'#eafff0':'#fff',color:isW?C.green:C.gray,cursor:'pointer',fontSize:10}}>{t.n}</button>)
+                        })}
+                        {r&&r.n&&<span style={{color:C.green,marginLeft:4}}>✓ {r.n}</span>}
+                      </div>
                     </div>)
                   })}
                 </div>)
