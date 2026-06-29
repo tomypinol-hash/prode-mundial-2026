@@ -394,6 +394,11 @@ async function fetchKnockoutResults(round,realStandings){
     if(!matchId)return
     results[matchId]=teamObj(winnerName)
     results[matchId+'_score']={a:String(ha),b:String(hb)}
+    var penHome=f.score&&f.score.penalty&&f.score.penalty.home
+    var penAway=f.score&&f.score.penalty&&f.score.penalty.away
+    if(penHome!==null&&penHome!==undefined&&penAway!==null&&penAway!==undefined){
+      results[matchId+'_penalty']={a:String(penHome),b:String(penAway)}
+    }
   })
   return results
 }
@@ -929,6 +934,7 @@ function KnockoutTab(props){
       var sc=(prode.knockoutScores&&prode.knockoutScores[round]&&prode.knockoutScores[round][id])||null
       var realWinner=results&&results[id]||null
       var realScore=results&&results[id+'_score']||null
+      var realPenalty=results&&results[id+'_penalty']||null
       var koLive=koLiveScores[id]||null
       // Para r32, cada partido tiene su propio cierre
       var matchLocked=isMatchLocked_KO(id)
@@ -985,10 +991,14 @@ function KnockoutTab(props){
           if(acertoExacto)partes.push('+'+rp.pe+'pts exacto')
           var txt=total>0?'✅ '+partes.join(' '):realWinner?'❌ 0pts':''
           if(!txt)return null
-          return(<div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:bg,borderRadius:6,fontSize:11,margin:'0 6px 6px 6px'}}>
-            <span style={{color:C.gray}}>Real:</span>
-            <span style={{fontWeight:700}}>{realScore.a} - {realScore.b}</span>
-            <span style={{marginLeft:'auto',fontWeight:700,color:col}}>{txt}</span>
+          return(<div style={{display:'flex',flexDirection:'column',gap:3,padding:'4px 10px',background:bg,borderRadius:6,fontSize:11,margin:'0 6px 6px 6px'}}>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <span style={{color:C.gray}}>Real:</span>
+              <span style={{fontWeight:700}}>{realScore.a} - {realScore.b}</span>
+              {realPenalty&&<span style={{color:C.gray,fontSize:10}}>(pen: {realPenalty.a} - {realPenalty.b})</span>}
+              <span style={{marginLeft:'auto',fontWeight:700,color:col}}>{txt}</span>
+            </div>
+            {realPenalty&&<div style={{fontSize:10,color:C.gray}}>⚡ Definido por penales</div>}
           </div>)
         })()}
       </div>)
