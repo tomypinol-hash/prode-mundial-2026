@@ -366,6 +366,12 @@ async function fetchKnockoutResults(round,realStandings){
   var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&round='+encodeURIComponent(roundMap[round])+'&status=FT')
   if(!data)return{}
   var results={}
+  // Funcion helper para obtener nombre de equipo del bracket
+  function getBracketName(g,pos){
+    if(!realStandings)return null
+    if(g==='3rd')return realStandings.thirds&&realStandings.thirds[pos]?realStandings.thirds[pos].n:null
+    return realStandings.classified&&realStandings.classified[g]&&realStandings.classified[g][pos]?realStandings.classified[g][pos].n:null
+  }
   data.forEach(function(f){
     var ha=f.goals.home,hb=f.goals.away
     if(ha===null||hb===null)return
@@ -375,22 +381,18 @@ async function fetchKnockoutResults(round,realStandings){
     // Buscar el id correcto en el bracket por nombre de equipos
     var matchId=null
     if(round==='r32'&&realStandings){
-      for(var idx=0;idx<ROUND_32_PAIRS.length;idx++){
-        var pair=ROUND_32_PAIRS[idx]
-        function getN(g,pos){
-          if(g==='3rd')return realStandings.thirds&&realStandings.thirds[pos]&&realStandings.thirds[pos].n
-          return realStandings.classified&&realStandings.classified[g]&&realStandings.classified[g][pos]&&realStandings.classified[g][pos].n
-        }
-        var n1=getN(pair[0],pair[1]),n2=getN(pair[2],pair[3])
-        if((n1===homeName&&n2===awayName)||(n1===awayName&&n2===homeName)){
-          matchId=round+'_'+idx
+      for(var idx2=0;idx2<ROUND_32_PAIRS.length;idx2++){
+        var pair2=ROUND_32_PAIRS[idx2]
+        var n1=getBracketName(pair2[0],pair2[1])
+        var n2=getBracketName(pair2[2],pair2[3])
+        if(n1&&n2&&((n1===homeName&&n2===awayName)||(n1===awayName&&n2===homeName))){
+          matchId=round+'_'+idx2
           break
         }
       }
     }
-    if(!matchId)return // no matcheó, ignorar
-    var winnerObj=teamObj(winnerName)
-    results[matchId]=winnerObj
+    if(!matchId)return
+    results[matchId]=teamObj(winnerName)
     results[matchId+'_score']={a:String(ha),b:String(hb)}
   })
   return results
