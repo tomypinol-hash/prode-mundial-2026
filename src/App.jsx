@@ -122,11 +122,50 @@ const GROUP_MATCHES = [
 ]
 
 const KNOCKOUT_DATES = {
-  r32:   new Date('2026-06-28T17:00:00-03:00'),
   r16:   new Date('2026-07-04T17:00:00-03:00'),
   qf:    new Date('2026-07-09T17:00:00-03:00'),
   sf:    new Date('2026-07-14T17:00:00-03:00'),
   final: new Date('2026-07-18T17:00:00-03:00'),
+}
+
+// Fechas individuales de cada partido eliminatorio
+const MATCH_DATES = {
+  // 16avos (Jun 28 - Jul 3)
+  r32_0:  new Date('2026-06-28T16:00:00-03:00'), // Sudafrica vs Canada
+  r32_1:  new Date('2026-06-29T17:30:00-03:00'), // Alemania vs Paraguay
+  r32_2:  new Date('2026-06-29T22:00:00-03:00'), // Paises Bajos vs Marruecos
+  r32_3:  new Date('2026-06-29T14:00:00-03:00'), // Brasil vs Japon
+  r32_4:  new Date('2026-06-30T18:00:00-03:00'), // Francia vs Suecia
+  r32_5:  new Date('2026-06-30T14:00:00-03:00'), // Costa de Marfil vs Noruega
+  r32_6:  new Date('2026-06-30T22:00:00-03:00'), // Mexico vs Ecuador
+  r32_7:  new Date('2026-07-01T13:00:00-03:00'), // Inglaterra vs RD Congo
+  r32_8:  new Date('2026-07-01T21:00:00-03:00'), // EE.UU. vs Bosnia
+  r32_9:  new Date('2026-07-01T17:00:00-03:00'), // Belgica vs Senegal
+  r32_10: new Date('2026-07-02T21:00:00-03:00'), // Portugal vs Croacia          8pm ET
+  r32_11: new Date('2026-07-02T16:00:00-03:00'), // Espana vs Austria
+  r32_12: new Date('2026-07-03T01:00:00-03:00'), // Suiza vs Argelia             12am ET
+  r32_13: new Date('2026-07-03T20:00:00-03:00'), // Argentina vs Cabo Verde      7pm ET
+  r32_14: new Date('2026-07-03T22:30:00-03:00'), // Colombia vs Ghana
+  r32_15: new Date('2026-07-03T13:00:00-03:00'), // Australia vs Egipto          12pm ET
+  // Octavos (Jul 4-7)
+  r16_0:  new Date('2026-07-04T14:00:00-03:00'),
+  r16_1:  new Date('2026-07-04T18:00:00-03:00'),
+  r16_2:  new Date('2026-07-05T17:00:00-03:00'),
+  r16_3:  new Date('2026-07-05T21:00:00-03:00'),
+  r16_4:  new Date('2026-07-06T16:00:00-03:00'), // M93 3pm ET Dallas
+  r16_5:  new Date('2026-07-06T21:00:00-03:00'), // M94 8pm ET Seattle
+  r16_6:  new Date('2026-07-07T13:00:00-03:00'), // M95 12pm ET Atlanta
+  r16_7:  new Date('2026-07-07T17:00:00-03:00'), // M96 4pm ET Vancouver
+  // Cuartos (Jul 9-10)
+  qf_0:   new Date('2026-07-09T17:00:00-03:00'), // M97 4pm ET Boston
+  qf_1:   new Date('2026-07-09T22:00:00-03:00'), // M100 9pm ET Kansas City
+  qf_2:   new Date('2026-07-10T16:00:00-03:00'), // M98 3pm ET Los Angeles
+  qf_3:   new Date('2026-07-10T18:00:00-03:00'), // M99 5pm ET Miami
+  // Semis (Jul 14-15)
+  sf_0:   new Date('2026-07-14T16:00:00-03:00'), // M101 3pm ET Dallas
+  sf_1:   new Date('2026-07-15T16:00:00-03:00'), // M102 3pm ET Atlanta
+  // Final (Jul 19)
+  final_m: new Date('2026-07-19T16:00:00-03:00'), // Final 3pm ET New York NJ
 }
 
 const LOCK_MINS = 20
@@ -139,7 +178,24 @@ const WC_LEAGUE = 1
 const WC_SEASON = 2026
 
 function isMatchLocked(date){return new Date()>new Date(date.getTime()-LOCK_MINS*60000)}
-function isRoundLocked(round){return new Date()>new Date(KNOCKOUT_DATES[round].getTime()-LOCK_MINS*60000)}
+function isRoundLocked(round){
+  if(round==='r32'){
+    // Para r32 usamos el primer partido del día como referencia del cierre
+    var firstDate=new Date('2026-06-28T16:00:00-03:00')
+    return new Date()>new Date(firstDate.getTime()-LOCK_MINS*60000)
+  }
+  return new Date()>new Date(KNOCKOUT_DATES[round].getTime()-LOCK_MINS*60000)
+}
+function isMatchLocked_KO(id){
+  var d=MATCH_DATES[id]
+  if(!d)return true
+  return new Date()>new Date(d.getTime()-LOCK_MINS*60000)
+}
+function timeLeftKOStr(id){
+  var d=MATCH_DATES[id]
+  if(!d)return null
+  return timeLeftStr(d)
+}
 function timeLeftStr(date){
   const diff=new Date(date.getTime()-LOCK_MINS*60000)-new Date()
   if(diff<=0)return null
@@ -788,7 +844,7 @@ function KnockoutTab(props){
   if(readonly&&!isOwn&&privadoRounds.includes(round)&&!isRoundLocked(round)){
     return <PrivadoBloqueo round={round}/>
   }
-  var locked=isRoundLocked(round),tl=timeLeftStr(KNOCKOUT_DATES[round]),count=ROUND_COUNTS[round],items=[]
+  var locked=isRoundLocked(round),tl=timeLeftStr(KNOCKOUT_DATES[round]||new Date('2026-06-28T16:00:00-03:00')),count=ROUND_COUNTS[round],items=[]
   function setKnockoutScore(id,side,val,ta,tb){
     if(locked||readonly)return
     var ks=Object.assign({},prode.knockoutScores||{}),rs=Object.assign({},ks[round]||{})
@@ -814,13 +870,15 @@ function KnockoutTab(props){
       var sc=(prode.knockoutScores&&prode.knockoutScores[round]&&prode.knockoutScores[round][id])||null
       var realWinner=results&&results[id]||null
       var realScore=results&&results[id+'_score']||null
-      // koPts ya no se usa (nueva logica en la barra de resultado)
+      // Para r32, cada partido tiene su propio cierre
+      var matchLocked=MATCH_DATES[id]?isMatchLocked_KO(id):locked
+      var matchTl=MATCH_DATES[id]?timeLeftKOStr(id):tl
       items.push(<div key={id} style={Object.assign({},sCard,{marginBottom:8})}>
         <div style={{background:C.red,color:'#fff',fontSize:11,textAlign:'center',padding:'3px'}}>{ROUND_LABELS[round]} {idx+1}</div>
         {[ta,tb].map(function(t,ti){
           var isW=w&&t&&w.n===t.n
           var isRealW=realWinner&&t&&realWinner.n===t.n
-          return(<div key={ti} style={Object.assign({},sMatchTeam(isW),{cursor:(locked||!t||readonly)?'default':'pointer',background:isRealW?'#eafff0':isW?'#e3f0fb':'#fff'})} onClick={function(){if(t&&!locked&&!readonly){var nr=Object.assign({},prode[round],{[id]:t});setProde(Object.assign({},prode,{[round]:nr}))}}}>
+          return(<div key={ti} style={Object.assign({},sMatchTeam(isW),{cursor:(matchLocked||!t||readonly)?'default':'pointer',background:isRealW?'#eafff0':isW?'#e3f0fb':'#fff'})} onClick={function(){if(t&&!matchLocked&&!readonly){var nr=Object.assign({},prode[round],{[id]:t});setProde(Object.assign({},prode,{[round]:nr}))}}}>
             {t?<><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}}/><span style={{flex:1}}>{t.n}</span>{isRealW&&<span style={{color:C.green,fontSize:11,fontWeight:700}}>✓ Real</span>}{!isRealW&&isW&&<span style={{color:C.blue,fontSize:11}}>✓ Mi prode</span>}</>:<span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}
           </div>)
         })}
@@ -828,11 +886,11 @@ function KnockoutTab(props){
           <div style={{padding:'6px 10px',borderTop:'1px solid #f0f0f0',display:'flex',alignItems:'center',gap:6,fontSize:12}}>
             <span style={{color:C.gray,fontSize:11}}>Marcador:</span>
             <img src={flag(ta.f)} alt="" style={{width:16,height:11}}/>
-            <input type="number" min="0" max="20" value={sc?sc.a:''} onChange={function(e){setKnockoutScore(id,'a',e.target.value,ta,tb)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+            <input type="number" min="0" max="20" value={sc?sc.a:''} onChange={function(e){setKnockoutScore(id,'a',e.target.value,ta,tb)}} disabled={matchLocked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
             <span style={{color:C.gray}}>-</span>
-            <input type="number" min="0" max="20" value={sc?sc.b:''} onChange={function(e){setKnockoutScore(id,'b',e.target.value,ta,tb)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+            <input type="number" min="0" max="20" value={sc?sc.b:''} onChange={function(e){setKnockoutScore(id,'b',e.target.value,ta,tb)}} disabled={matchLocked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
             <img src={flag(tb.f)} alt="" style={{width:16,height:11}}/>
-            {locked?<span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>:tl&&<span style={{color:C.gold,fontSize:10,marginLeft:'auto'}}>{tl}</span>}
+            {matchLocked?<span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>:matchTl&&<span style={{color:C.gold,fontSize:10,marginLeft:'auto'}}>{matchTl}</span>}
           </div>
         )}
         {realScore&&(function(){
