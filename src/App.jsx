@@ -845,9 +845,9 @@ function KnockoutTab(props){
   if(readonly&&!isOwn&&privadoRounds.includes(round)&&!isRoundLocked(round)){
     return <PrivadoBloqueo round={round}/>
   }
-  var locked=isRoundLocked(round),tl=timeLeftStr(KNOCKOUT_DATES[round]||new Date('2026-06-28T16:00:00-03:00')),count=ROUND_COUNTS[round],items=[]
+  var roundLocked=isRoundLocked(round),count=ROUND_COUNTS[round],items=[]
   function setKnockoutScore(id,side,val,ta,tb){
-    if(locked||readonly)return
+    if(isMatchLocked_KO(id)||readonly)return
     var ks=Object.assign({},prode.knockoutScores||{}),rs=Object.assign({},ks[round]||{})
     var cur=rs[id]||{a:'',b:''}
     var newSc=Object.assign({},cur,{[side]:val})
@@ -872,8 +872,8 @@ function KnockoutTab(props){
       var realWinner=results&&results[id]||null
       var realScore=results&&results[id+'_score']||null
       // Para r32, cada partido tiene su propio cierre
-      var matchLocked=MATCH_DATES[id]?isMatchLocked_KO(id):locked
-      var matchTl=MATCH_DATES[id]?timeLeftKOStr(id):tl
+      var matchLocked=isMatchLocked_KO(id)
+      var matchTl=timeLeftKOStr(id)
       items.push(<div key={id} style={Object.assign({},sCard,{marginBottom:8})}>
         <div style={{background:C.red,color:'#fff',fontSize:11,textAlign:'center',padding:'3px'}}>{ROUND_LABELS[round]} {idx+1}</div>
         {[ta,tb].map(function(t,ti){
