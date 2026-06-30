@@ -692,7 +692,7 @@ export default function App(){
   }
 
   async function saveProde(newProde){setProdeState(newProde);setSaving(true);await dbUpsert(currentPlayer,newProde);setSaving(false);fetchAll()}
-  async function saveResults(newResults){setResults(newResults);await dbSaveResults(newResults);fetchAll()}
+  async function saveResults(newResults){await dbSaveResults(newResults);setResults(newResults);if(newResults.real_standings)setRealStandings(newResults.real_standings)}
 
   if(screen==='live')return <LiveScreen setScreen={setScreen}/>
   if(screen==='admin')return <AdminPanel players={players} results={results} saveResults={saveResults} setScreen={setScreen} fetchAll={fetchAll} syncAll={syncAll}/>
