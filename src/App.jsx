@@ -623,8 +623,9 @@ export default function App(){
   async function fetchAll(){
     setLoading(true)
     var rows=await dbGetAll(),res=await dbGetResults()
+    if(!res||typeof res!=='object'){setLoading(false);return}
     setPlayers(rows);setResults(res)
-    if(res.real_standings)setRealStandings(res.real_standings)
+    setRealStandings(res.real_standings||null)
     setLoading(false)
   }
 
@@ -638,10 +639,16 @@ export default function App(){
       Object.assign(koResults,kr)
     }
     var cur=await dbGetResults()
-    var merged=Object.assign({},cur,groupRes,koResults)
+    // Filtrar entradas vacías/undefined de koResults antes de mergear
+    var cleanKo={}
+    Object.keys(koResults).forEach(function(k){
+      if(koResults[k]!==null&&koResults[k]!==undefined)cleanKo[k]=koResults[k]
+    })
+    var merged=Object.assign({},cur,groupRes,cleanKo)
     if(standings){merged.real_standings=standings;setRealStandings(standings)}
     await dbSaveResults(merged)
     setResults(merged)
+    console.log('[syncAll] merged keys:', Object.keys(merged).length, 'ko keys:', Object.keys(cleanKo).length)
   }
 
   async function handleJoin(){
@@ -1108,8 +1115,10 @@ function FinalTab(props){
 function AdminPanel(props){
   var players=props.players,results=props.results,saveResults=props.saveResults
   var setScreen=props.setScreen,fetchAll=props.fetchAll,syncAll=props.syncAll
-  var [localResults,setLocalResults]=useState(results)
+  var [localResults,setLocalResults]=useState(results||{})
   var [activeTab,setActiveTab]=useState('ranking')
+  // Actualizar localResults cuando results cambie desde Supabase
+  useEffect(function(){if(results)setLocalResults(function(prev){return Object.assign({},results,prev)});},[results])
   var [saving,setSaving]=useState(false)
   var sorted=[...players].sort(function(a,b){return calcScore(b.prode,results)-calcScore(a.prode,results)})
   async function handleSave(){setSaving(true);await saveResults(localResults);setSaving(false)}
