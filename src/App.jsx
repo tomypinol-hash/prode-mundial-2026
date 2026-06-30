@@ -122,51 +122,51 @@ const GROUP_MATCHES = [
 ]
 
 const KNOCKOUT_DATES = {
-  r32:   new Date('2026-06-28T16:00:00-03:00'), // primer partido r32
-  r16:   new Date('2026-07-04T14:00:00-03:00'), // primer partido r16
-  qf:    new Date('2026-07-09T17:00:00-03:00'), // primer partido qf
-  sf:    new Date('2026-07-14T16:00:00-03:00'), // primer partido sf
-  final: new Date('2026-07-19T16:00:00-03:00'), // final
+  r32:   new Date('2026-06-28T16:00:00-03:00'),
+  r16:   new Date('2026-07-04T14:00:00-03:00'),
+  qf:    new Date('2026-07-09T17:00:00-03:00'),
+  sf:    new Date('2026-07-14T16:00:00-03:00'),
+  final: new Date('2026-07-19T16:00:00-03:00'),
 }
 
-// Fechas individuales de cada partido eliminatorio (hora Argentina, fuente: FIFA oficial)
+// Fechas individuales de cada partido eliminatorio
 const MATCH_DATES = {
-  // 16avos
-  r32_0:  new Date('2026-06-28T16:00:00-03:00'), // Sudafrica vs Canada (lun 28/6 16hs)
-  r32_3:  new Date('2026-06-29T14:00:00-03:00'), // Brasil vs Japon (lun 29/6 14hs)
-  r32_1:  new Date('2026-06-29T17:30:00-03:00'), // Alemania vs Paraguay (lun 29/6 17:30hs)
-  r32_2:  new Date('2026-06-29T22:00:00-03:00'), // Paises Bajos vs Marruecos (lun 29/6 22hs)
-  r32_5:  new Date('2026-06-30T14:00:00-03:00'), // Costa de Marfil vs Noruega (mar 30/6 14hs)
-  r32_4:  new Date('2026-06-30T18:00:00-03:00'), // Francia vs Suecia (mar 30/6 18hs)
-  r32_6:  new Date('2026-06-30T22:00:00-03:00'), // Mexico vs Ecuador (mar 30/6 22hs)
-  r32_7:  new Date('2026-07-01T13:00:00-03:00'), // Inglaterra vs RD Congo (mie 1/7 13hs)
-  r32_9:  new Date('2026-07-01T17:00:00-03:00'), // Belgica vs Senegal (mie 1/7 17hs)
-  r32_8:  new Date('2026-07-01T21:00:00-03:00'), // EE.UU. vs Bosnia (mie 1/7 21hs)
-  r32_11: new Date('2026-07-02T16:00:00-03:00'), // Espana vs Austria (jue 2/7 16hs)
-  r32_10: new Date('2026-07-02T20:00:00-03:00'), // Portugal vs Croacia (jue 2/7 20hs)
-  r32_12: new Date('2026-07-03T00:00:00-03:00'), // Suiza vs Argelia (vie 3/7 00hs)
-  r32_15: new Date('2026-07-03T15:00:00-03:00'), // Australia vs Egipto (vie 3/7 15hs)
-  r32_13: new Date('2026-07-03T19:00:00-03:00'), // Argentina vs Cabo Verde (vie 3/7 19hs)
-  r32_14: new Date('2026-07-03T22:30:00-03:00'), // Colombia vs Ghana (vie 3/7 22:30hs)
+  // 16avos (Jun 28 - Jul 3)
+  r32_0:  new Date('2026-06-28T16:00:00-03:00'), // Sudafrica vs Canada
+  r32_1:  new Date('2026-06-29T17:30:00-03:00'), // Alemania vs Paraguay
+  r32_2:  new Date('2026-06-29T22:00:00-03:00'), // Paises Bajos vs Marruecos
+  r32_3:  new Date('2026-06-29T14:00:00-03:00'), // Brasil vs Japon
+  r32_4:  new Date('2026-06-30T18:00:00-03:00'), // Francia vs Suecia
+  r32_5:  new Date('2026-06-30T14:00:00-03:00'), // Costa de Marfil vs Noruega
+  r32_6:  new Date('2026-06-30T22:00:00-03:00'), // Mexico vs Ecuador
+  r32_7:  new Date('2026-07-01T13:00:00-03:00'), // Inglaterra vs RD Congo
+  r32_8:  new Date('2026-07-01T21:00:00-03:00'), // EE.UU. vs Bosnia
+  r32_9:  new Date('2026-07-01T17:00:00-03:00'), // Belgica vs Senegal
+  r32_10: new Date('2026-07-02T21:00:00-03:00'), // Portugal vs Croacia          8pm ET
+  r32_11: new Date('2026-07-02T16:00:00-03:00'), // Espana vs Austria
+  r32_12: new Date('2026-07-03T01:00:00-03:00'), // Suiza vs Argelia             12am ET
+  r32_13: new Date('2026-07-03T20:00:00-03:00'), // Argentina vs Cabo Verde      7pm ET
+  r32_14: new Date('2026-07-03T22:30:00-03:00'), // Colombia vs Ghana
+  r32_15: new Date('2026-07-03T13:00:00-03:00'), // Australia vs Egipto          12pm ET
   // Octavos (Jul 4-7)
-  r16_0:  new Date('2026-07-04T14:00:00-03:00'), // sab 4/7 14hs Houston
-  r16_1:  new Date('2026-07-04T18:00:00-03:00'), // sab 4/7 18hs Philadelphia
-  r16_2:  new Date('2026-07-05T17:00:00-03:00'), // dom 5/7 17hs Nueva Jersey
-  r16_3:  new Date('2026-07-05T21:00:00-03:00'), // dom 5/7 21hs Ciudad de Mexico
-  r16_4:  new Date('2026-07-06T16:00:00-03:00'), // lun 6/7 16hs Dallas
-  r16_5:  new Date('2026-07-06T21:00:00-03:00'), // lun 6/7 21hs Seattle
-  r16_6:  new Date('2026-07-07T13:00:00-03:00'), // mar 7/7 13hs Atlanta
-  r16_7:  new Date('2026-07-07T17:00:00-03:00'), // mar 7/7 17hs Vancouver
-  // Cuartos (Jul 9-11)
-  qf_0:   new Date('2026-07-09T17:00:00-03:00'), // jue 9/7 17hs Boston
-  qf_1:   new Date('2026-07-10T16:00:00-03:00'), // vie 10/7 16hs Los Angeles
-  qf_2:   new Date('2026-07-11T18:00:00-03:00'), // sab 11/7 18hs Miami
-  qf_3:   new Date('2026-07-11T22:00:00-03:00'), // sab 11/7 22hs Kansas City
+  r16_0:  new Date('2026-07-04T14:00:00-03:00'),
+  r16_1:  new Date('2026-07-04T18:00:00-03:00'),
+  r16_2:  new Date('2026-07-05T17:00:00-03:00'),
+  r16_3:  new Date('2026-07-05T21:00:00-03:00'),
+  r16_4:  new Date('2026-07-06T16:00:00-03:00'), // M93 3pm ET Dallas
+  r16_5:  new Date('2026-07-06T21:00:00-03:00'), // M94 8pm ET Seattle
+  r16_6:  new Date('2026-07-07T13:00:00-03:00'), // M95 12pm ET Atlanta
+  r16_7:  new Date('2026-07-07T17:00:00-03:00'), // M96 4pm ET Vancouver
+  // Cuartos (Jul 9-10)
+  qf_0:   new Date('2026-07-09T17:00:00-03:00'), // M97 4pm ET Boston
+  qf_1:   new Date('2026-07-09T22:00:00-03:00'), // M100 9pm ET Kansas City
+  qf_2:   new Date('2026-07-10T16:00:00-03:00'), // M98 3pm ET Los Angeles
+  qf_3:   new Date('2026-07-10T18:00:00-03:00'), // M99 5pm ET Miami
   // Semis (Jul 14-15)
-  sf_0:   new Date('2026-07-14T16:00:00-03:00'), // mar 14/7 16hs Dallas
-  sf_1:   new Date('2026-07-15T16:00:00-03:00'), // mie 15/7 16hs Atlanta
+  sf_0:   new Date('2026-07-14T16:00:00-03:00'), // M101 3pm ET Dallas
+  sf_1:   new Date('2026-07-15T16:00:00-03:00'), // M102 3pm ET Atlanta
   // Final (Jul 19)
-  final_m: new Date('2026-07-19T16:00:00-03:00'), // dom 19/7 16hs Nueva Jersey
+  final_m: new Date('2026-07-19T16:00:00-03:00'), // Final 3pm ET New York NJ
 }
 
 const LOCK_MINS = 20
@@ -315,7 +315,7 @@ function mapStatus(s){
 }
 
 async function fetchGroupResults(){
-  var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&status=FT')
+  var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&status=FT-AET-PEN')
   if(!data)return{}
   var results={}
   data.forEach(function(f){
@@ -363,7 +363,7 @@ async function fetchRealStandings(){
 
 async function fetchKnockoutResults(round,realStandings){
   var roundMap={r32:'Round of 32',r16:'Round of 16',qf:'Quarter-finals',sf:'Semi-finals',final:'Final'}
-  var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&round='+encodeURIComponent(roundMap[round])+'&status=FT')
+  var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&round='+encodeURIComponent(roundMap[round])+'&status=FT-AET-PEN')
   if(!data)return{}
   var results={}
   // Funcion helper para obtener nombre de equipo del bracket
@@ -639,16 +639,12 @@ export default function App(){
       Object.assign(koResults,kr)
     }
     var cur=await dbGetResults()
-    // Filtrar entradas vacías/undefined de koResults antes de mergear
     var cleanKo={}
-    Object.keys(koResults).forEach(function(k){
-      if(koResults[k]!==null&&koResults[k]!==undefined)cleanKo[k]=koResults[k]
-    })
+    Object.keys(koResults).forEach(function(k){if(koResults[k]!==null&&koResults[k]!==undefined)cleanKo[k]=koResults[k]})
     var merged=Object.assign({},cur,groupRes,cleanKo)
     if(standings){merged.real_standings=standings;setRealStandings(standings)}
     await dbSaveResults(merged)
     setResults(merged)
-    console.log('[syncAll] merged keys:', Object.keys(merged).length, 'ko keys:', Object.keys(cleanKo).length)
   }
 
   async function handleJoin(){
@@ -878,43 +874,6 @@ function KnockoutTab(props){
   if(readonly&&!isOwn&&privadoRounds.includes(round)&&!isRoundLocked(round)){
     return <PrivadoBloqueo round={round}/>
   }
-  // Live scores para partidos eliminatorios en curso
-  var [koLiveScores,setKoLiveScores]=useState({})
-  useEffect(function(){
-    async function fetchKoLive(){
-      var liveData=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&status=1H-2H-HT-ET')
-      if(!liveData)return
-      var live={}
-      var count2=round==='final'?1:(ROUND_COUNTS[round]||0)
-      for(var idx2=0;idx2<count2;idx2++){
-        var mid=round==='final'?'final_m':round+'_'+idx2
-        var matchDate=MATCH_DATES[mid]
-        if(!matchDate)continue
-        var now2=new Date()
-        var endTime=new Date(matchDate.getTime()+130*60000)
-        if(now2<matchDate||now2>endTime)continue
-        // Buscar los equipos de este partido
-        var teams2=getTeamsForMatch(round,idx2,prode,realStandings)
-        if(!teams2||!teams2[0]||!teams2[1])continue
-        var n1=teams2[0].n,n2=teams2[1].n
-        liveData.forEach(function(f){
-          var ha=f.goals.home,hb=f.goals.away
-          if(ha===null||hb===null)return
-          var homeName=API_TEAM_MAP[f.teams.home.name]||f.teams.home.name
-          var awayName=API_TEAM_MAP[f.teams.away.name]||f.teams.away.name
-          if((n1===homeName&&n2===awayName)||(n1===awayName&&n2===homeName)){
-            var scoreA=n1===homeName?String(ha):String(hb)
-            var scoreB=n1===homeName?String(hb):String(ha)
-            live[mid]={a:scoreA,b:scoreB,elapsed:f.fixture.status.elapsed,isLive:true}
-          }
-        })
-      }
-      setKoLiveScores(live)
-    }
-    fetchKoLive()
-    var t=setInterval(fetchKoLive,60000)
-    return function(){clearInterval(t)}
-  },[round])
   var roundLocked=isRoundLocked(round),count=ROUND_COUNTS[round],items=[]
   function setKnockoutScore(id,side,val,ta,tb){
     if(isMatchLocked_KO(id)||readonly)return
@@ -941,13 +900,10 @@ function KnockoutTab(props){
       var sc=(prode.knockoutScores&&prode.knockoutScores[round]&&prode.knockoutScores[round][id])||null
       var realWinner=results&&results[id]||null
       var realScore=results&&results[id+'_score']||null
-      var realPenalty=results&&results[id+'_penalty']||null
-      var koLive=koLiveScores[id]||null
       // Para r32, cada partido tiene su propio cierre
       var matchLocked=isMatchLocked_KO(id)
       var matchTl=timeLeftKOStr(id)
-      var cardBorder=koLive?C.red:matchLocked?C.border:C.blue
-      items.push(<div key={id} style={Object.assign({},sCard,{marginBottom:8,borderColor:cardBorder})}>
+      items.push(<div key={id} style={Object.assign({},sCard,{marginBottom:8})}>
         <div style={{background:C.red,color:'#fff',fontSize:11,textAlign:'center',padding:'3px'}}>{ROUND_LABELS[round]} {idx+1}</div>
         {[ta,tb].map(function(t,ti){
           var isW=w&&t&&w.n===t.n
@@ -964,22 +920,10 @@ function KnockoutTab(props){
             <span style={{color:C.gray}}>-</span>
             <input type="number" min="0" max="20" value={sc?sc.b:''} onChange={function(e){setKnockoutScore(id,'b',e.target.value,ta,tb)}} disabled={matchLocked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
             <img src={flag(tb.f)} alt="" style={{width:16,height:11}}/>
-            {koLive?(
-              <span style={{marginLeft:'auto',fontSize:11,fontWeight:700,color:C.red}}>⚽ EN VIVO {koLive.elapsed?koLive.elapsed+"'":''}</span>
-            ):matchLocked?(
-              <span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>
-            ):matchTl&&(
-              <span style={{color:C.gold,fontSize:10,marginLeft:'auto'}}>{matchTl}</span>
-            )}
+            {matchLocked?<span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>:matchTl&&<span style={{color:C.gold,fontSize:10,marginLeft:'auto'}}>{matchTl}</span>}
           </div>
         )}
-        {koLive&&(
-          <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:'#fff8f8',borderRadius:6,fontSize:11,margin:'0 6px 6px 6px',border:'1px solid '+C.red}}>
-            <span style={{color:C.gray}}>Parcial:</span>
-            <span style={{fontWeight:700,color:C.red}}>{koLive.a} - {koLive.b}</span>
-          </div>
-        )}
-        {!koLive&&realScore&&(function(){
+        {realScore&&(function(){
           var roundP={r32:{p:1,pe:2},r16:{p:2,pe:4},qf:{p:3,pe:6},sf:{p:3,pe:6},final:{p:3,pe:6}}
           var rp=roundP[round]||{p:1,pe:2}
           var acertoGanador=w&&realWinner&&w.n===realWinner.n
@@ -998,14 +942,10 @@ function KnockoutTab(props){
           if(acertoExacto)partes.push('+'+rp.pe+'pts exacto')
           var txt=total>0?'✅ '+partes.join(' '):realWinner?'❌ 0pts':''
           if(!txt)return null
-          return(<div style={{display:'flex',flexDirection:'column',gap:3,padding:'4px 10px',background:bg,borderRadius:6,fontSize:11,margin:'0 6px 6px 6px'}}>
-            <div style={{display:'flex',alignItems:'center',gap:6}}>
-              <span style={{color:C.gray}}>Real:</span>
-              <span style={{fontWeight:700}}>{realScore.a} - {realScore.b}</span>
-              {realPenalty&&<span style={{color:C.gray,fontSize:10}}>(pen: {realPenalty.a} - {realPenalty.b})</span>}
-              <span style={{marginLeft:'auto',fontWeight:700,color:col}}>{txt}</span>
-            </div>
-            {realPenalty&&<div style={{fontSize:10,color:C.gray}}>⚡ Definido por penales</div>}
+          return(<div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:bg,borderRadius:6,fontSize:11,margin:'0 6px 6px 6px'}}>
+            <span style={{color:C.gray}}>Real:</span>
+            <span style={{fontWeight:700}}>{realScore.a} - {realScore.b}</span>
+            <span style={{marginLeft:'auto',fontWeight:700,color:col}}>{txt}</span>
           </div>)
         })()}
       </div>)
@@ -1117,7 +1057,6 @@ function AdminPanel(props){
   var setScreen=props.setScreen,fetchAll=props.fetchAll,syncAll=props.syncAll
   var [localResults,setLocalResults]=useState(results||{})
   var [activeTab,setActiveTab]=useState('ranking')
-  // Actualizar localResults cuando results cambie desde Supabase (sin pisar ediciones manuales)
   var prevResultsRef=useRef(null)
   useEffect(function(){
     if(results&&results!==prevResultsRef.current){
@@ -1189,8 +1128,29 @@ function AdminPanel(props){
                 })}
               </div>
             )}
+            <div style={{fontSize:13,fontWeight:500,color:C.blue,marginBottom:8}}>Cargar manualmente (backup)</div>
+            {GROUPS.map(function(g){
+              var gMatches=GROUP_MATCHES.filter(function(m){return m.g===g.name})
+              return(<div key={g.name} style={{marginBottom:12}}>
+                <div style={{fontSize:12,fontWeight:600,color:C.blue,marginBottom:6,borderBottom:'1px solid '+C.border,paddingBottom:4}}>Grupo {g.name}</div>
+                {gMatches.map(function(m){
+                  var ta=g.teams[m.a],tb=g.teams[m.b],r=localResults[m.id]||{a:'',b:''}
+                  return(<div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',fontSize:12}}>
+                    <img src={flag(ta.f)} alt={ta.n} style={{width:16,height:11,objectFit:'cover'}}/>
+                    <span style={{width:65,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ta.n}</span>
+                    <input type="number" min="0" max="20" value={r.a} onChange={function(e){setResult(m.id,'a',e.target.value)}} style={{width:34,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+                    <span>-</span>
+                    <input type="number" min="0" max="20" value={r.b} onChange={function(e){setResult(m.id,'b',e.target.value)}} style={{width:34,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+                    <img src={flag(tb.f)} alt={tb.n} style={{width:16,height:11,objectFit:'cover'}}/>
+                    <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tb.n}</span>
+                  </div>)
+                })}
+              </div>)
+            })}
+            <button style={sBtn(C.green)} onClick={handleSave} disabled={saving}>{saving?'Guardando...':'Guardar resultados manuales'}</button>
+
             {/* FASES ELIMINATORIAS */}
-            <div style={{marginTop:4,borderTop:'2px solid '+C.border,paddingTop:12}}>
+            <div style={{marginTop:16,borderTop:'2px solid '+C.border,paddingTop:12}}>
               <div style={{fontSize:13,fontWeight:500,color:C.blue,marginBottom:10}}>Fases eliminatorias — carga manual</div>
 
               {/* Terceros clasificados */}
@@ -1260,30 +1220,6 @@ function AdminPanel(props){
                   })}
                 </div>)
               })}
-            </div>
-
-            {/* GRUPOS - carga manual (backup) */}
-            <div style={{marginTop:16,borderTop:'2px solid '+C.border,paddingTop:12}}>
-              <div style={{fontSize:13,fontWeight:500,color:C.blue,marginBottom:8}}>Grupos — carga manual (backup)</div>
-              {GROUPS.map(function(g){
-                var gMatches=GROUP_MATCHES.filter(function(m){return m.g===g.name})
-                return(<div key={g.name} style={{marginBottom:12}}>
-                  <div style={{fontSize:12,fontWeight:600,color:C.blue,marginBottom:6,borderBottom:'1px solid '+C.border,paddingBottom:4}}>Grupo {g.name}</div>
-                  {gMatches.map(function(m){
-                    var ta=g.teams[m.a],tb=g.teams[m.b],r=localResults[m.id]||{a:'',b:''}
-                    return(<div key={m.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',fontSize:12}}>
-                      <img src={flag(ta.f)} alt={ta.n} style={{width:16,height:11,objectFit:'cover'}}/>
-                      <span style={{width:65,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ta.n}</span>
-                      <input type="number" min="0" max="20" value={r.a} onChange={function(e){setResult(m.id,'a',e.target.value)}} style={{width:34,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
-                      <span>-</span>
-                      <input type="number" min="0" max="20" value={r.b} onChange={function(e){setResult(m.id,'b',e.target.value)}} style={{width:34,padding:'2px 4px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
-                      <img src={flag(tb.f)} alt={tb.n} style={{width:16,height:11,objectFit:'cover'}}/>
-                      <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tb.n}</span>
-                    </div>)
-                  })}
-                </div>)
-              })}
-              <button style={sBtn(C.green)} onClick={handleSave} disabled={saving}>{saving?'Guardando...':'Guardar resultados manuales'}</button>
             </div>
 
           </div>
