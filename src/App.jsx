@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from './supabase'
 
 const API_TEAM_MAP = {
@@ -255,7 +255,10 @@ function calcScore(prode,results){
   if(!prode)return 0
   var pts=0;results=results||{}
   GROUP_MATCHES.forEach(function(m){pts+=calcMatchPoints(prode.scores&&prode.scores[m.id],results[m.id])})
-  // Logica eliminatorias: todas las fases igual — 2pts ganador + 4pts exacto = 6pts max
+  // Logica eliminatorias: ganador correcto + marcador exacto son independientes y se suman
+  // 16avos: 1pt ganador + 2pts exacto = 3pts max
+  // Octavos: 2pts ganador + 4pts exacto = 6pts max
+  // Cuartos/Semis/Final: 3pts ganador + 6pts exacto = 9pts max
   var rounds=[{k:'r32',p:2,pe:4},{k:'r16',p:2,pe:4},{k:'qf',p:2,pe:4},{k:'sf',p:2,pe:4},{k:'final',p:2,pe:4}]
   rounds.forEach(function(r){
     var rd=prode[r.k]||{},ks=prode.knockoutScores&&prode.knockoutScores[r.k]||{}
@@ -312,7 +315,7 @@ function mapStatus(s){
 }
 
 async function fetchGroupResults(){
-  var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&status=FT')
+  var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&status=FT-AET-PEN')
   if(!data)return{}
   var results={}
   data.forEach(function(f){
@@ -360,7 +363,7 @@ async function fetchRealStandings(){
 
 async function fetchKnockoutResults(round,realStandings){
   var roundMap={r32:'Round of 32',r16:'Round of 16',qf:'Quarter-finals',sf:'Semi-finals',final:'Final'}
-  var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&round='+encodeURIComponent(roundMap[round])+'&status=FT')
+  var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&round='+encodeURIComponent(roundMap[round])+'&status=FT-AET-PEN')
   if(!data)return{}
   var results={}
   // Funcion helper para obtener nombre de equipo del bracket
@@ -391,10 +394,10 @@ async function fetchKnockoutResults(round,realStandings){
     if(!matchId)return
     results[matchId]=teamObj(winnerName)
     results[matchId+'_score']={a:String(ha),b:String(hb)}
-    // Guardar resultado de penales si existe
-    var pp=f.score&&f.score.penalty
-    if(pp&&pp.home!==null&&pp.away!==null){
-      results[matchId+'_pen']={a:String(pp.home),b:String(pp.away)}
+    var penHome=f.score&&f.score.penalty&&f.score.penalty.home
+    var penAway=f.score&&f.score.penalty&&f.score.penalty.away
+    if(penHome!==null&&penHome!==undefined&&penAway!==null&&penAway!==undefined){
+      results[matchId+'_penalty']={a:String(penHome),b:String(penAway)}
     }
   })
   return results
@@ -620,8 +623,9 @@ export default function App(){
   async function fetchAll(){
     setLoading(true)
     var rows=await dbGetAll(),res=await dbGetResults()
+    if(!res||typeof res!=='object'){setLoading(false);return}
     setPlayers(rows);setResults(res)
-    if(res.real_standings)setRealStandings(res.real_standings)
+    setRealStandings(res.real_standings||null)
     setLoading(false)
   }
 
@@ -635,7 +639,9 @@ export default function App(){
       Object.assign(koResults,kr)
     }
     var cur=await dbGetResults()
-    var merged=Object.assign({},cur,groupRes,koResults)
+    var cleanKo={}
+    Object.keys(koResults).forEach(function(k){if(koResults[k]!==null&&koResults[k]!==undefined)cleanKo[k]=koResults[k]})
+    var merged=Object.assign({},cur,groupRes,cleanKo)
     if(standings){merged.real_standings=standings;setRealStandings(standings)}
     await dbSaveResults(merged)
     setResults(merged)
@@ -936,12 +942,12 @@ function KnockoutTab(props){
           if(acertoExacto)partes.push('+'+rp.pe+'pts exacto')
           var txt=total>0?'✅ '+partes.join(' '):realWinner?'❌ 0pts':''
           if(!txt)return null
-          var penScore=results&&results[id+'_pen']
-          return(<div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',background:bg,borderRadius:6,fontSize:12,margin:'0 6px 6px 6px'}}>
+          var penScore=results&&results[id+'_penalty']
+          return(<div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:bg,borderRadius:6,fontSize:11,margin:'0 6px 6px 6px'}}>
             <span style={{color:C.gray}}>Real:</span>
-            <span style={{fontWeight:700,fontSize:13}}>{realScore.a} - {realScore.b}</span>
-            {penScore&&<span style={{color:C.gray,fontSize:11}}>⚡ pen {penScore.a}-{penScore.b}</span>}
-            <span style={{marginLeft:'auto',fontWeight:700,color:col,fontSize:12}}>{txt}</span>
+            <span style={{fontWeight:700}}>{realScore.a} - {realScore.b}</span>
+            {penScore&&<span style={{color:C.gray}}>⚡ pen: {penScore.a}-{penScore.b}</span>}
+            <span style={{marginLeft:'auto',fontWeight:700,color:col}}>{txt}</span>
           </div>)
         })()}
       </div>)
@@ -1051,13 +1057,20 @@ function FinalTab(props){
 function AdminPanel(props){
   var players=props.players,results=props.results,saveResults=props.saveResults
   var setScreen=props.setScreen,fetchAll=props.fetchAll,syncAll=props.syncAll
-  var [localResults,setLocalResults]=useState(results)
+  var [localResults,setLocalResults]=useState(results||{})
   var [activeTab,setActiveTab]=useState('ranking')
+  var prevResultsRef=useRef(null)
+  useEffect(function(){
+    if(results&&results!==prevResultsRef.current){
+      prevResultsRef.current=results
+      setLocalResults(Object.assign({},results))
+    }
+  },[results])
   var [saving,setSaving]=useState(false)
   var sorted=[...players].sort(function(a,b){return calcScore(b.prode,results)-calcScore(a.prode,results)})
   async function handleSave(){setSaving(true);await saveResults(localResults);setSaving(false)}
   async function handleSync(){setSaving(true);await syncAll();alert('Sincronizado!');setSaving(false)}
-  function setResult(matchId,side,val){var cur=localResults[matchId]||{a:'',b:''};setLocalResults(Object.assign({},localResults,{[matchId]:Object.assign({},cur,{[side]:val})}))}
+  function setResult(matchId,side,val){var key=matchId+'_score';var cur=localResults[key]||{a:'',b:''};setLocalResults(Object.assign({},localResults,{[key]:Object.assign({},cur,{[side]:val})}))}
   return(
     <div style={{maxWidth:600,margin:'0 auto',padding:'8px'}}>
       <div style={sHeader}>
@@ -1176,6 +1189,7 @@ function AdminPanel(props){
                     var id=round==='final'?'final_m':round+'_'+idx
                     var r=localResults[id]||{}
                     var sc=localResults[id+'_score']||{a:'',b:''}
+                    var pen=localResults[id+'_penalty']||null
                     var t1=null,t2=null
                     if(pairs&&classified){t1=getTeam(pairs[idx][0],pairs[idx][1]);t2=getTeam(pairs[idx][2],pairs[idx][3])}
                     else{t1=localResults[round==='r16'?'r32_'+(idx*2):round==='qf'?'r16_'+(idx*2):round==='sf'?'qf_'+(idx*2):'sf_0']||null;t2=localResults[round==='r16'?'r32_'+(idx*2+1):round==='qf'?'r16_'+(idx*2+1):round==='sf'?'qf_'+(idx*2+1):'sf_1']||null}
@@ -1202,6 +1216,7 @@ function AdminPanel(props){
                           }} style={{padding:'1px 6px',border:'1px solid '+(isW?C.green:C.border),borderRadius:3,background:isW?'#eafff0':'#fff',color:isW?C.green:C.gray,cursor:'pointer',fontSize:10}}>{t.n}</button>)
                         })}
                         {r&&r.n&&<span style={{color:C.green,marginLeft:4}}>✓ {r.n}</span>}
+                        {pen&&<span style={{color:C.gray,marginLeft:4}}>⚡ pen: {pen.a}-{pen.b}</span>}
                       </div>
                     </div>)
                   })}
