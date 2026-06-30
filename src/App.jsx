@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from './supabase'
 
 const API_TEAM_MAP = {
@@ -1117,13 +1117,19 @@ function AdminPanel(props){
   var setScreen=props.setScreen,fetchAll=props.fetchAll,syncAll=props.syncAll
   var [localResults,setLocalResults]=useState(results||{})
   var [activeTab,setActiveTab]=useState('ranking')
-  // Actualizar localResults cuando results cambie desde Supabase
-  useEffect(function(){if(results)setLocalResults(function(prev){return Object.assign({},results,prev)});},[results])
+  // Actualizar localResults cuando results cambie desde Supabase (sin pisar ediciones manuales)
+  var prevResultsRef=useRef(null)
+  useEffect(function(){
+    if(results&&results!==prevResultsRef.current){
+      prevResultsRef.current=results
+      setLocalResults(Object.assign({},results))
+    }
+  },[results])
   var [saving,setSaving]=useState(false)
   var sorted=[...players].sort(function(a,b){return calcScore(b.prode,results)-calcScore(a.prode,results)})
   async function handleSave(){setSaving(true);await saveResults(localResults);setSaving(false)}
   async function handleSync(){setSaving(true);await syncAll();alert('Sincronizado!');setSaving(false)}
-  function setResult(matchId,side,val){var cur=localResults[matchId]||{a:'',b:''};setLocalResults(Object.assign({},localResults,{[matchId]:Object.assign({},cur,{[side]:val})}))}
+  function setResult(matchId,side,val){var key=matchId+'_score';var cur=localResults[key]||{a:'',b:''};setLocalResults(Object.assign({},localResults,{[key]:Object.assign({},cur,{[side]:val})}))}
   return(
     <div style={{maxWidth:600,margin:'0 auto',padding:'8px'}}>
       <div style={sHeader}>
@@ -1219,9 +1225,9 @@ function AdminPanel(props){
                   <div style={{fontSize:12,fontWeight:600,color:C.blue,marginBottom:6,borderBottom:'1px solid '+C.border,paddingBottom:2}}>{labels[round]}</div>
                   {Array.from({length:count},function(_,idx){
                     var id=round==='final'?'final_m':round+'_'+idx
-                    var r=localResults[id]||props.results&&props.results[id]||{}
-                    var sc=localResults[id+'_score']||props.results&&props.results[id+'_score']||{a:'',b:''}
-                    var pen=localResults[id+'_penalty']||props.results&&props.results[id+'_penalty']||null
+                    var r=localResults[id]||{}
+                    var sc=localResults[id+'_score']||{a:'',b:''}
+                    var pen=localResults[id+'_penalty']||null
                     var t1=null,t2=null
                     if(pairs&&classified){t1=getTeam(pairs[idx][0],pairs[idx][1]);t2=getTeam(pairs[idx][2],pairs[idx][3])}
                     else{t1=localResults[round==='r16'?'r32_'+(idx*2):round==='qf'?'r16_'+(idx*2):round==='sf'?'qf_'+(idx*2):'sf_0']||null;t2=localResults[round==='r16'?'r32_'+(idx*2+1):round==='qf'?'r16_'+(idx*2+1):round==='sf'?'qf_'+(idx*2+1):'sf_1']||null}
