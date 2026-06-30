@@ -361,7 +361,7 @@ async function fetchRealStandings(){
   return{classified,thirds}
 }
 
-async function fetchKnockoutResults(round,realStandings){
+async function fetchKnockoutResults(round,realStandings,existingResults){
   var roundMap={r32:'Round of 32',r16:'Round of 16',qf:'Quarter-finals',sf:'Semi-finals',final:'Final'}
   var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&round='+encodeURIComponent(roundMap[round])+'&status=FT-AET-PEN')
   if(!data)return{}
@@ -389,6 +389,33 @@ async function fetchKnockoutResults(round,realStandings){
           matchId=round+'_'+idx2
           break
         }
+      }
+    } else if(round==='final'){
+      matchId='final_m'
+    } else {
+      // Para r16, qf, sf: buscar por nombres de equipo en los resultados existentes de la ronda anterior
+      // Los equipos que juegan son los ganadores de la ronda anterior
+      var prevRound={r16:'r32',qf:'r16',sf:'qf'}[round]
+      var counts={r16:8,qf:4,sf:2}
+      var total=counts[round]||0
+      if(prevRound){
+        for(var idx3=0;idx3<total;idx3++){
+          var pid=round+'_'+idx3
+          // Los ganadores de los partidos anteriores son los equipos de este partido
+          var prevA=existingResults&&existingResults[prevRound+'_'+(idx3*2)]
+          var prevB=existingResults&&existingResults[prevRound+'_'+(idx3*2+1)]
+          var nameA=prevA?prevA.n:null
+          var nameB=prevB?prevB.n:null
+          if(nameA&&nameB&&((nameA===homeName&&nameB===awayName)||(nameA===awayName&&nameB===homeName))){
+            matchId=pid
+            break
+          }
+        }
+      }
+      // Fallback: usar índice del array
+      if(!matchId){
+        var dataIdx=data.indexOf(f)
+        if(dataIdx>=0&&dataIdx<total)matchId=round+'_'+dataIdx
       }
     }
     if(!matchId)return
@@ -633,9 +660,10 @@ export default function App(){
     var groupRes=await fetchGroupResults()
     var standings=await fetchRealStandings()
     var koResults={}
+    var cur2=await dbGetResults()
     var rounds=['r32','r16','qf','sf','final']
     for(var i=0;i<rounds.length;i++){
-      var kr=await fetchKnockoutResults(rounds[i],standings)
+      var kr=await fetchKnockoutResults(rounds[i],standings,Object.assign({},cur2,koResults))
       Object.assign(koResults,kr)
     }
     var cur=await dbGetResults()
