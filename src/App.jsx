@@ -259,7 +259,7 @@ function calcScore(prode,results){
   // 16avos: 1pt ganador + 2pts exacto = 3pts max
   // Octavos: 2pts ganador + 4pts exacto = 6pts max
   // Cuartos/Semis/Final: 3pts ganador + 6pts exacto = 9pts max
-  var rounds=[{k:'r32',p:2,pe:4},{k:'r16',p:2,pe:4},{k:'qf',p:2,pe:4},{k:'sf',p:2,pe:4},{k:'final',p:2,pe:4}]
+  var rounds=[{k:'r32',p:1,pe:2},{k:'r16',p:2,pe:4},{k:'qf',p:3,pe:6},{k:'sf',p:3,pe:6},{k:'final',p:3,pe:6}]
   rounds.forEach(function(r){
     var rd=prode[r.k]||{},ks=prode.knockoutScores&&prode.knockoutScores[r.k]||{}
     Object.keys(rd).forEach(function(id){
@@ -952,7 +952,7 @@ function KnockoutTab(props){
           </div>
         )}
         {realScore&&(function(){
-          var roundP={r32:{p:2,pe:4},r16:{p:2,pe:4},qf:{p:2,pe:4},sf:{p:2,pe:4},final:{p:2,pe:4}}
+          var roundP={r32:{p:1,pe:2},r16:{p:2,pe:4},qf:{p:3,pe:6},sf:{p:3,pe:6},final:{p:3,pe:6}}
           var rp=roundP[round]||{p:1,pe:2}
           var acertoGanador=w&&realWinner&&w.n===realWinner.n
           var acertoExacto=false
