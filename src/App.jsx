@@ -936,7 +936,14 @@ function KnockoutTab(props){
         {[ta,tb].map(function(t,ti){
           var isW=w&&t&&w.n===t.n
           var isRealW=realWinner&&t&&realWinner.n===t.n
-          return(<div key={ti} style={Object.assign({},sMatchTeam(isW),{cursor:(matchLocked||!t||readonly)?'default':'pointer',background:isRealW?'#eafff0':isW?'#e3f0fb':'#fff'})} onClick={function(){if(t&&!matchLocked&&!readonly){var nr=Object.assign({},prode[round],{[id]:t});setProde(Object.assign({},prode,{[round]:nr}))}}}>
+          return(<div key={ti} style={Object.assign({},sMatchTeam(isW),{cursor:(matchLocked||!t||readonly)?'default':'pointer',background:isRealW?'#eafff0':isW?'#e3f0fb':'#fff'})} onClick={function(){if(t&&!matchLocked&&!readonly){
+                  var sc2=prode.knockoutScores&&prode.knockoutScores[round]&&prode.knockoutScores[round][id]
+                  var pa2=sc2?parseInt(sc2.a):NaN,pb2=sc2?parseInt(sc2.b):NaN
+                  var marcadorDefineGanador=!isNaN(pa2)&&!isNaN(pb2)&&pa2!==pb2
+                  if(marcadorDefineGanador)return
+                  var nr=Object.assign({},prode[round],{[id]:t})
+                  setProde(Object.assign({},prode,{[round]:nr}))
+                }}}>
             {t?<><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}}/><span style={{flex:1}}>{t.n}</span>{isRealW&&<span style={{color:C.green,fontSize:11,fontWeight:700}}>✓ Real</span>}{!isRealW&&isW&&<span style={{color:C.blue,fontSize:11}}>✓ Mi prode</span>}</>:<span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}
           </div>)
         })}
