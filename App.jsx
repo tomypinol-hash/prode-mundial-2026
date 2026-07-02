@@ -259,7 +259,7 @@ function calcScore(prode,results){
   // 16avos: 1pt ganador + 2pts exacto = 3pts max
   // Octavos: 2pts ganador + 4pts exacto = 6pts max
   // Cuartos/Semis/Final: 3pts ganador + 6pts exacto = 9pts max
-  var rounds=[{k:'r32',p:2,pe:4},{k:'r16',p:2,pe:4},{k:'qf',p:2,pe:4},{k:'sf',p:2,pe:4},{k:'final',p:2,pe:4}]
+  var rounds=[{k:'r32',p:1,pe:2},{k:'r16',p:2,pe:4},{k:'qf',p:3,pe:6},{k:'sf',p:3,pe:6},{k:'final',p:3,pe:6}]
   rounds.forEach(function(r){
     var rd=prode[r.k]||{},ks=prode.knockoutScores&&prode.knockoutScores[r.k]||{}
     Object.keys(rd).forEach(function(id){
@@ -361,7 +361,7 @@ async function fetchRealStandings(){
   return{classified,thirds}
 }
 
-async function fetchKnockoutResults(round,realStandings){
+async function fetchKnockoutResults(round,realStandings,existingResults){
   var roundMap={r32:'Round of 32',r16:'Round of 16',qf:'Quarter-finals',sf:'Semi-finals',final:'Final'}
   var data=await apiCall('fixtures?league='+WC_LEAGUE+'&season='+WC_SEASON+'&round='+encodeURIComponent(roundMap[round])+'&status=FT-AET-PEN')
   if(!data)return{}
@@ -389,6 +389,33 @@ async function fetchKnockoutResults(round,realStandings){
           matchId=round+'_'+idx2
           break
         }
+      }
+    } else if(round==='final'){
+      matchId='final_m'
+    } else {
+      // Para r16, qf, sf: buscar por nombres de equipo en los resultados existentes de la ronda anterior
+      // Los equipos que juegan son los ganadores de la ronda anterior
+      var prevRound={r16:'r32',qf:'r16',sf:'qf'}[round]
+      var counts={r16:8,qf:4,sf:2}
+      var total=counts[round]||0
+      if(prevRound){
+        for(var idx3=0;idx3<total;idx3++){
+          var pid=round+'_'+idx3
+          // Los ganadores de los partidos anteriores son los equipos de este partido
+          var prevA=existingResults&&existingResults[prevRound+'_'+(idx3*2)]
+          var prevB=existingResults&&existingResults[prevRound+'_'+(idx3*2+1)]
+          var nameA=prevA?prevA.n:null
+          var nameB=prevB?prevB.n:null
+          if(nameA&&nameB&&((nameA===homeName&&nameB===awayName)||(nameA===awayName&&nameB===homeName))){
+            matchId=pid
+            break
+          }
+        }
+      }
+      // Fallback: usar índice del array
+      if(!matchId){
+        var dataIdx=data.indexOf(f)
+        if(dataIdx>=0&&dataIdx<total)matchId=round+'_'+dataIdx
       }
     }
     if(!matchId)return
@@ -633,9 +660,10 @@ export default function App(){
     var groupRes=await fetchGroupResults()
     var standings=await fetchRealStandings()
     var koResults={}
+    var cur2=await dbGetResults()
     var rounds=['r32','r16','qf','sf','final']
     for(var i=0;i<rounds.length;i++){
-      var kr=await fetchKnockoutResults(rounds[i],standings)
+      var kr=await fetchKnockoutResults(rounds[i],standings,Object.assign({},cur2,koResults))
       Object.assign(koResults,kr)
     }
     var cur=await dbGetResults()
@@ -664,7 +692,7 @@ export default function App(){
   }
 
   async function saveProde(newProde){setProdeState(newProde);setSaving(true);await dbUpsert(currentPlayer,newProde);setSaving(false);fetchAll()}
-  async function saveResults(newResults){setResults(newResults);await dbSaveResults(newResults);fetchAll()}
+  async function saveResults(newResults){await dbSaveResults(newResults);setResults(newResults);if(newResults.real_standings)setRealStandings(newResults.real_standings)}
 
   if(screen==='live')return <LiveScreen setScreen={setScreen}/>
   if(screen==='admin')return <AdminPanel players={players} results={results} saveResults={saveResults} setScreen={setScreen} fetchAll={fetchAll} syncAll={syncAll}/>
@@ -721,6 +749,11 @@ export default function App(){
         <div style={{fontSize:22,fontWeight:600}}>PRODE MUNDIAL 2026</div>
         <div style={{fontSize:13,opacity:.9,marginTop:4}}>USA - Mexico - Canada</div>
         <button onClick={function(){setScreen('live')}} style={{background:'rgba(255,255,255,.25)',color:'#fff',border:'2px solid rgba(255,255,255,.6)',borderRadius:10,padding:'6px 20px',cursor:'pointer',fontSize:13,fontWeight:600,marginTop:10}}>Ver partidos en vivo</button>
+      </div>
+      <div style={{background:'linear-gradient(135deg,#74acdf 0%,#ffffff 50%,#74acdf 100%)',borderRadius:12,padding:'10px 16px',marginTop:8,display:'flex',alignItems:'center',justifyContent:'center',gap:10}}>
+        <span style={{fontSize:22}}>🇦🇷</span>
+        <span style={{fontSize:14,fontWeight:600,color:'#1565C0',letterSpacing:1}}>¡VAMOS ARGENTINA!</span>
+        <span style={{fontSize:22}}>🇦🇷</span>
       </div>
       <div style={{...sCard,padding:'20px 16px',marginTop:10}}>
         <div style={{fontSize:15,fontWeight:500,color:C.blue,marginBottom:8,textAlign:'center'}}>Entrar al prode</div>
@@ -908,7 +941,14 @@ function KnockoutTab(props){
         {[ta,tb].map(function(t,ti){
           var isW=w&&t&&w.n===t.n
           var isRealW=realWinner&&t&&realWinner.n===t.n
-          return(<div key={ti} style={Object.assign({},sMatchTeam(isW),{cursor:(matchLocked||!t||readonly)?'default':'pointer',background:isRealW?'#eafff0':isW?'#e3f0fb':'#fff'})} onClick={function(){if(t&&!matchLocked&&!readonly){var nr=Object.assign({},prode[round],{[id]:t});setProde(Object.assign({},prode,{[round]:nr}))}}}>
+          return(<div key={ti} style={Object.assign({},sMatchTeam(isW),{cursor:(matchLocked||!t||readonly)?'default':'pointer',background:isRealW?'#eafff0':isW?'#e3f0fb':'#fff'})} onClick={function(){if(t&&!matchLocked&&!readonly){
+                  var sc2=prode.knockoutScores&&prode.knockoutScores[round]&&prode.knockoutScores[round][id]
+                  var pa2=sc2?parseInt(sc2.a):NaN,pb2=sc2?parseInt(sc2.b):NaN
+                  var marcadorDefineGanador=!isNaN(pa2)&&!isNaN(pb2)&&pa2!==pb2
+                  if(marcadorDefineGanador)return
+                  var nr=Object.assign({},prode[round],{[id]:t})
+                  setProde(Object.assign({},prode,{[round]:nr}))
+                }}}>
             {t?<><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}}/><span style={{flex:1}}>{t.n}</span>{isRealW&&<span style={{color:C.green,fontSize:11,fontWeight:700}}>✓ Real</span>}{!isRealW&&isW&&<span style={{color:C.blue,fontSize:11}}>✓ Mi prode</span>}</>:<span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}
           </div>)
         })}
@@ -924,7 +964,7 @@ function KnockoutTab(props){
           </div>
         )}
         {realScore&&(function(){
-          var roundP={r32:{p:2,pe:4},r16:{p:2,pe:4},qf:{p:2,pe:4},sf:{p:2,pe:4},final:{p:2,pe:4}}
+          var roundP={r32:{p:1,pe:2},r16:{p:2,pe:4},qf:{p:3,pe:6},sf:{p:3,pe:6},final:{p:3,pe:6}}
           var rp=roundP[round]||{p:1,pe:2}
           var acertoGanador=w&&realWinner&&w.n===realWinner.n
           var acertoExacto=false
