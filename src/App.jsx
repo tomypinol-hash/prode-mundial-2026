@@ -691,7 +691,7 @@ export default function App(){
     setScreen(name===ADMIN?'admin':'prode');setNameInput('');setPassInput('');setActiveTab(getActiveTab());setLoading(false)
   }
 
-  async function saveProde(newProde){setProdeState(newProde);setSaving(true);await dbUpsert(currentPlayer,newProde);setSaving(false);fetchAll()}
+  async function saveProde(newProde){setProdeState(newProde);setSaving(true);await dbUpsert(currentPlayer,newProde);setSaving(false)}
   async function saveResults(newResults){await dbSaveResults(newResults);setResults(newResults);if(newResults.real_standings)setRealStandings(newResults.real_standings)}
 
   if(screen==='live')return <LiveScreen setScreen={setScreen}/>
@@ -749,6 +749,11 @@ export default function App(){
         <div style={{fontSize:22,fontWeight:600}}>PRODE MUNDIAL 2026</div>
         <div style={{fontSize:13,opacity:.9,marginTop:4}}>USA - Mexico - Canada</div>
         <button onClick={function(){setScreen('live')}} style={{background:'rgba(255,255,255,.25)',color:'#fff',border:'2px solid rgba(255,255,255,.6)',borderRadius:10,padding:'6px 20px',cursor:'pointer',fontSize:13,fontWeight:600,marginTop:10}}>Ver partidos en vivo</button>
+      </div>
+      <div style={{background:'linear-gradient(135deg,#74acdf 0%,#ffffff 50%,#74acdf 100%)',borderRadius:12,padding:'10px 16px',marginTop:8,display:'flex',alignItems:'center',justifyContent:'center',gap:10}}>
+        <span style={{fontSize:22}}>🇦🇷</span>
+        <span style={{fontSize:14,fontWeight:600,color:'#1565C0',letterSpacing:1}}>¡VAMOS ARGENTINA!</span>
+        <span style={{fontSize:22}}>🇦🇷</span>
       </div>
       <div style={{...sCard,padding:'20px 16px',marginTop:10}}>
         <div style={{fontSize:15,fontWeight:500,color:C.blue,marginBottom:8,textAlign:'center'}}>Entrar al prode</div>
@@ -994,7 +999,13 @@ function KnockoutTab(props){
         {roundLocked?<span style={sLock}>Fase cerrada</span>:<span/>}
         {realStandings?<span style={{fontSize:11,color:C.green}}>✅ Bracket con datos reales</span>:<span style={{fontSize:11,color:C.gold}}>⏳ Usando pronósticos</span>}
       </div>
+      {!readonly&&!roundLocked&&<button onClick={function(){saveProde(prode)}} disabled={saving} style={{width:'100%',padding:'12px',background:C.green,color:'#fff',border:'none',borderRadius:10,fontSize:15,fontWeight:600,cursor:'pointer',marginTop:10,boxShadow:'0 2px 8px rgba(39,174,96,.3)'}}>
+        {saving?'Guardando...':'💾 Guardar pronósticos'}
+      </button>}
       {items}
+      {!readonly&&!roundLocked&&items.length>3&&<button onClick={function(){saveProde(prode)}} disabled={saving} style={{width:'100%',padding:'12px',background:C.green,color:'#fff',border:'none',borderRadius:10,fontSize:15,fontWeight:600,cursor:'pointer',marginTop:10,boxShadow:'0 2px 8px rgba(39,174,96,.3)'}}>
+        {saving?'Guardando...':'💾 Guardar pronósticos'}
+      </button>}
     </div>
   )
 }
