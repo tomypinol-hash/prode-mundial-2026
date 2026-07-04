@@ -149,12 +149,12 @@ const MATCH_DATES = {
   r32_14: new Date('2026-07-03T22:30:00-03:00'), // Colombia vs Ghana
   r32_15: new Date('2026-07-03T13:00:00-03:00'), // Australia vs Egipto          12pm ET
   // Octavos (Jul 4-7)
-  r16_0:  new Date('2026-07-04T14:00:00-03:00'),
-  r16_1:  new Date('2026-07-04T18:00:00-03:00'),
-  r16_2:  new Date('2026-07-05T17:00:00-03:00'),
-  r16_3:  new Date('2026-07-05T21:00:00-03:00'),
-  r16_4:  new Date('2026-07-06T16:00:00-03:00'), // M93 3pm ET Dallas
-  r16_5:  new Date('2026-07-06T21:00:00-03:00'), // M94 8pm ET Seattle
+  r16_0:  new Date('2026-07-04T18:00:00-03:00'), // Paraguay vs Francia 5pm ET
+  r16_1:  new Date('2026-07-04T14:00:00-03:00'), // Canada vs Marruecos 1pm ET
+  r16_2:  new Date('2026-07-06T16:00:00-03:00'), // Portugal vs Espana 3pm ET
+  r16_3:  new Date('2026-07-06T21:00:00-03:00'), // EE.UU. vs Belgica 8pm ET
+  r16_4:  new Date('2026-07-05T17:00:00-03:00'), // Brasil vs Noruega 4pm ET
+  r16_5:  new Date('2026-07-05T21:00:00-03:00'), // Mexico vs Inglaterra 8pm ET
   r16_6:  new Date('2026-07-07T13:00:00-03:00'), // M95 12pm ET Atlanta
   r16_7:  new Date('2026-07-07T17:00:00-03:00'), // M96 4pm ET Vancouver
   // Cuartos (Jul 9-10)
