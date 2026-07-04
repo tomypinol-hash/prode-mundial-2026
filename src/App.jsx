@@ -936,12 +936,19 @@ function KnockoutTab(props){
     rs[id]=newSc
     ks[round]=rs
     var pa=parseInt(newSc.a),pb=parseInt(newSc.b)
-    // Auto-seleccionar ganador solo si hay diferencia (empate = penales, elige manual)
     var newProde=Object.assign({},prode,{knockoutScores:ks})
-    if(!isNaN(pa)&&!isNaN(pb)&&pa!==pb&&ta&&tb){
-      var winner=pa>pb?ta:tb
-      var nr=Object.assign({},prode[round],{[id]:winner})
-      newProde=Object.assign({},newProde,{[round]:nr})
+    if(!isNaN(pa)&&!isNaN(pb)&&ta&&tb){
+      if(pa!==pb){
+        // Marcador define ganador — auto-seleccionar y no permitir cambio manual
+        var winner=pa>pb?ta:tb
+        var nr=Object.assign({},prode[round],{[id]:winner})
+        newProde=Object.assign({},newProde,{[round]:nr})
+      } else {
+        // Empate — limpiar ganador para que el jugador elija manualmente
+        var nr2=Object.assign({},prode[round])
+        delete nr2[id]
+        newProde=Object.assign({},newProde,{[round]:nr2})
+      }
     }
     setProde(newProde)
   }
