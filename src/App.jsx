@@ -451,7 +451,7 @@ var ROUND_32_PAIRS=[
 var ROUND_COUNTS={r32:16,r16:8,qf:4,sf:2}
 var ROUND_LABELS={r32:'Partido',r16:'Octavo',qf:'Cuarto',sf:'Semifinal'}
 
-function getTeamsForMatch(round,idx,prode,realStandings){
+function getTeamsForMatch(round,idx,prode,realStandings,results){
   function getClassified(g,pos){
     if(realStandings&&realStandings.classified&&realStandings.classified[g]&&realStandings.classified[g][pos])
       return realStandings.classified[g][pos]
@@ -470,9 +470,22 @@ function getTeamsForMatch(round,idx,prode,realStandings){
     var t2=pair[2]==='3rd'?get3rd(pair[3]):getClassified(pair[2],pair[3])
     return[t1,t2]
   }
-  if(round==='r16')return[prode.r32['r32_'+(idx*2)]||null,prode.r32['r32_'+(idx*2+1)]||null]
-  if(round==='qf')return[prode.r16['r16_'+(idx*2)]||null,prode.r16['r16_'+(idx*2+1)]||null]
-  if(round==='sf')return[prode.qf['qf_'+(idx*2)]||null,prode.qf['qf_'+(idx*2+1)]||null]
+  // Para r16/qf/sf: usar resultados reales si existen, sino pronóstico del jugador
+  if(round==='r16'){
+    var prevA=results&&results['r32_'+(idx*2)]||prode.r32['r32_'+(idx*2)]||null
+    var prevB=results&&results['r32_'+(idx*2+1)]||prode.r32['r32_'+(idx*2+1)]||null
+    return[prevA,prevB]
+  }
+  if(round==='qf'){
+    var prevA=results&&results['r16_'+(idx*2)]||prode.r16['r16_'+(idx*2)]||null
+    var prevB=results&&results['r16_'+(idx*2+1)]||prode.r16['r16_'+(idx*2+1)]||null
+    return[prevA,prevB]
+  }
+  if(round==='sf'){
+    var prevA=results&&results['qf_'+(idx*2)]||prode.qf['qf_'+(idx*2)]||null
+    var prevB=results&&results['qf_'+(idx*2+1)]||prode.qf['qf_'+(idx*2+1)]||null
+    return[prevA,prevB]
+  }
   return[null,null]
 }
 
@@ -923,7 +936,7 @@ function KnockoutTab(props){
   for(var i=0;i<count;i++){
     (function(idx){
       var id=round+'_'+idx
-      var teams=getTeamsForMatch(round,idx,prode,realStandings)
+      var teams=getTeamsForMatch(round,idx,prode,realStandings,results)
       var ta=teams[0],tb=teams[1],w=prode[round][id]||null
       var sc=(prode.knockoutScores&&prode.knockoutScores[round]&&prode.knockoutScores[round][id])||null
       var realWinner=results&&results[id]||null
