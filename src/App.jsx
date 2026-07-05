@@ -1051,7 +1051,13 @@ function KnockoutTab(props){
         {roundLocked?<span style={sLock}>Fase cerrada</span>:<span/>}
         {realStandings?<span style={{fontSize:11,color:C.green}}>✅ Bracket con datos reales</span>:<span style={{fontSize:11,color:C.gold}}>⏳ Usando pronósticos</span>}
       </div>
+      {!readonly&&!roundLocked&&<button onClick={function(){saveProde(prode)}} disabled={saving} style={{width:'100%',padding:'12px',background:C.green,color:'#fff',border:'none',borderRadius:10,fontSize:15,fontWeight:700,cursor:'pointer',marginBottom:10,boxShadow:'0 2px 8px rgba(39,174,96,.4)'}}>
+        {saving?'Guardando...':'💾 Guardar pronósticos'}
+      </button>}
       {items}
+      {!readonly&&!roundLocked&&<button onClick={function(){saveProde(prode)}} disabled={saving} style={{width:'100%',padding:'12px',background:C.green,color:'#fff',border:'none',borderRadius:10,fontSize:15,fontWeight:700,cursor:'pointer',marginTop:10,boxShadow:'0 2px 8px rgba(39,174,96,.4)'}}>
+        {saving?'Guardando...':'💾 Guardar pronósticos'}
+      </button>}
     </div>
   )
 }
