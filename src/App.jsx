@@ -399,11 +399,14 @@ async function fetchKnockoutResults(round,realStandings,existingResults){
       var counts={r16:8,qf:4,sf:2}
       var total=counts[round]||0
       if(prevRound){
+        var pairsMap={r16:R16_PAIRS}
+        var roundPairs=pairsMap[round]
         for(var idx3=0;idx3<total;idx3++){
           var pid=round+'_'+idx3
-          // Los ganadores de los partidos anteriores son los equipos de este partido
-          var prevA=existingResults&&existingResults[prevRound+'_'+(idx3*2)]
-          var prevB=existingResults&&existingResults[prevRound+'_'+(idx3*2+1)]
+          var prevKeyA=roundPairs?roundPairs[idx3][0]:prevRound+'_'+(idx3*2)
+          var prevKeyB=roundPairs?roundPairs[idx3][1]:prevRound+'_'+(idx3*2+1)
+          var prevA=existingResults&&existingResults[prevKeyA]
+          var prevB=existingResults&&existingResults[prevKeyB]
           var nameA=prevA?prevA.n:null
           var nameB=prevB?prevB.n:null
           if(nameA&&nameB&&((nameA===homeName&&nameB===awayName)||(nameA===awayName&&nameB===homeName))){
@@ -716,7 +719,7 @@ export default function App(){
     setScreen(name===ADMIN?'admin':'prode');setNameInput('');setPassInput('');setActiveTab(getActiveTab());setLoading(false)
   }
 
-  async function saveProde(newProde){setProdeState(newProde);setSaving(true);await dbUpsert(currentPlayer,newProde);setSaving(false);fetchAll()}
+  async function saveProde(newProde){setProdeState(newProde);setSaving(true);await dbUpsert(currentPlayer,newProde);setSaving(false)}
   async function saveResults(newResults){await dbSaveResults(newResults);setResults(newResults);if(newResults.real_standings)setRealStandings(newResults.real_standings)}
 
   if(screen==='live')return <LiveScreen setScreen={setScreen}/>
@@ -774,6 +777,11 @@ export default function App(){
         <div style={{fontSize:22,fontWeight:600}}>PRODE MUNDIAL 2026</div>
         <div style={{fontSize:13,opacity:.9,marginTop:4}}>USA - Mexico - Canada</div>
         <button onClick={function(){setScreen('live')}} style={{background:'rgba(255,255,255,.25)',color:'#fff',border:'2px solid rgba(255,255,255,.6)',borderRadius:10,padding:'6px 20px',cursor:'pointer',fontSize:13,fontWeight:600,marginTop:10}}>Ver partidos en vivo</button>
+      </div>
+      <div style={{background:'linear-gradient(135deg,#74acdf 0%,#ffffff 50%,#74acdf 100%)',borderRadius:12,padding:'10px 16px',marginTop:8,display:'flex',alignItems:'center',justifyContent:'center',gap:10}}>
+        <span style={{fontSize:22}}>🇦🇷</span>
+        <span style={{fontSize:14,fontWeight:600,color:'#1565C0',letterSpacing:1}}>¡VAMOS ARGENTINA!</span>
+        <span style={{fontSize:22}}>🇦🇷</span>
       </div>
       <div style={{...sCard,padding:'20px 16px',marginTop:10}}>
         <div style={{fontSize:15,fontWeight:500,color:C.blue,marginBottom:8,textAlign:'center'}}>Entrar al prode</div>
