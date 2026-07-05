@@ -767,12 +767,18 @@ export default function App(){
     setLoading(false)
   }
 
-  async function syncAll(){
+  async function syncAll(onlyCurrentPhase){
+    if(onlyCurrentPhase===undefined)onlyCurrentPhase=true
     var groupRes=await fetchGroupResults()
     var standings=await fetchRealStandings()
     var koResults={}
     var cur2=await dbGetResults()
-    var rounds=['r32','r16','qf','sf','final']
+    var currentPhase=getActiveTab()
+    // Por defecto solo sincronizamos la fase actual, para no re-pedir (y potencialmente
+    // pisar) datos de fases ya cerradas y ahorrar requests de la API (limite 100/dia)
+    var rounds=onlyCurrentPhase
+      ? (currentPhase==='groups'?[]:[currentPhase])
+      : ['r32','r16','qf','sf','final']
     for(var i=0;i<rounds.length;i++){
       var kr=await fetchKnockoutResults(rounds[i],standings,Object.assign({},cur2,koResults))
       Object.assign(koResults,kr)
@@ -1263,7 +1269,8 @@ function AdminPanel(props){
   var [saving,setSaving]=useState(false)
   var sorted=[...players].sort(function(a,b){return calcScore(b.prode,results)-calcScore(a.prode,results)})
   async function handleSave(){setSaving(true);await saveResults(localResults);setSaving(false)}
-  async function handleSync(){setSaving(true);await syncAll();alert('Sincronizado!');setSaving(false)}
+  async function handleSync(){setSaving(true);await syncAll(true);alert('Sincronizada la fase actual ('+({groups:'Grupos',r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis',final:'Final'}[getActiveTab()]||getActiveTab())+')');setSaving(false)}
+  async function handleSyncFull(){if(!window.confirm('Esto va a pedir datos de TODAS las fases (grupos + 16avos + octavos + cuartos + semis + final), gasta mas requests de la API. Seguro?'))return;setSaving(true);await syncAll(false);alert('Sincronizado TODO!');setSaving(false)}
   function setResult(matchId,side,val){var key=matchId+'_score';var cur=localResults[key]||{a:'',b:''};setLocalResults(Object.assign({},localResults,{[key]:Object.assign({},cur,{[side]:val})}))}
   return(
     <div style={{maxWidth:600,margin:'0 auto',padding:'8px'}}>
@@ -1329,8 +1336,9 @@ function AdminPanel(props){
         {activeTab==='resultados'&&(
           <div>
             <div style={{fontSize:14,fontWeight:500,color:C.blue,marginBottom:6}}>Resultados y standings</div>
-            <div style={{fontSize:12,color:C.gray,marginBottom:8}}>Se sincronizan automáticamente cada 5 minutos.</div>
-            <button onClick={handleSync} style={sBtn(C.green,{marginBottom:12})} disabled={saving}>{saving?'Sincronizando...':'Sincronizar todo ahora'}</button>
+            <div style={{fontSize:12,color:C.gray,marginBottom:8}}>Se sincronizan automáticamente cada 5 minutos (solo la fase actual).</div>
+            <button onClick={handleSync} style={sBtn(C.green,{marginBottom:6})} disabled={saving}>{saving?'Sincronizando...':'🔄 Sincronizar fase actual'}</button>
+            <button onClick={handleSyncFull} style={sBtn('#999',{marginBottom:12,fontSize:12,padding:'6px 12px'})} disabled={saving}>Forzar sincronización completa (todas las fases)</button>
             {results.real_standings&&(
               <div style={{background:'#eafff0',border:'1px solid '+C.green,borderRadius:8,padding:'10px',marginBottom:12,fontSize:12}}>
                 <div style={{fontWeight:600,color:C.green,marginBottom:6}}>✅ Standings reales cargados</div>
