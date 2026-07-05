@@ -463,6 +463,18 @@ var ROUND_32_PAIRS=[
 ]
 var ROUND_COUNTS={r32:16,r16:8,qf:4,sf:2}
 var ROUND_LABELS={r32:'Partido',r16:'Octavo',qf:'Cuarto',sf:'Semifinal'}
+// Orden cronológico de Octavos y etiquetas día/hora (hora ARG)
+var R16_ORDER=[1,0,4,5,2,3,6,7]
+var MATCH_DATETIME={
+  r16_0:'Sáb 4/7 18:00',r16_1:'Sáb 4/7 14:00',
+  r16_2:'Lun 6/7 16:00',r16_3:'Lun 6/7 21:00',
+  r16_4:'Dom 5/7 17:00',r16_5:'Dom 5/7 21:00',
+  r16_6:'Mar 7/7 13:00',r16_7:'Mar 7/7 17:00',
+  qf_0:'Mié 9/7 17:00',qf_1:'Mié 9/7 22:00',
+  qf_2:'Jue 10/7 16:00',qf_3:'Jue 10/7 18:00',
+  sf_0:'Lun 14/7 16:00',sf_1:'Mar 15/7 16:00',
+  final_m:'Sáb 19/7 16:00',
+}
 
 function getTeamsForMatch(round,idx,prode,realStandings,results){
   function getClassified(g,pos){
@@ -960,9 +972,14 @@ function KnockoutTab(props){
     }
     setProde(newProde)
   }
-  for(var i=0;i<count;i++){
+  // Para r16, ordenar cronológicamente
+  var renderOrder=[]
+  if(round==='r16'){for(var ri=0;ri<R16_ORDER.length;ri++)renderOrder.push(R16_ORDER[ri])}
+  else{for(var ri2=0;ri2<count;ri2++)renderOrder.push(ri2)}
+  for(var i=0;i<renderOrder.length;i++){
     (function(idx){
       var id=round+'_'+idx
+      var matchDateTime=MATCH_DATETIME[round==='final'?'final_m':round+'_'+idx]||null
       var teams=getTeamsForMatch(round,idx,prode,realStandings,results)
       var ta=teams[0],tb=teams[1],w=prode[round][id]||null
       var sc=(prode.knockoutScores&&prode.knockoutScores[round]&&prode.knockoutScores[round][id])||null
@@ -972,7 +989,7 @@ function KnockoutTab(props){
       var matchLocked=isMatchLocked_KO(id)
       var matchTl=timeLeftKOStr(id)
       items.push(<div key={id} style={Object.assign({},sCard,{marginBottom:8})}>
-        <div style={{background:C.red,color:'#fff',fontSize:11,textAlign:'center',padding:'3px'}}>{ROUND_LABELS[round]} {idx+1}</div>
+        <div style={{background:C.red,color:'#fff',fontSize:11,textAlign:'center',padding:'3px'}}>{ROUND_LABELS[round]} {i+1}{matchDateTime?' — '+matchDateTime:''}</div>
         {[ta,tb].map(function(t,ti){
           var isW=w&&t&&w.n===t.n
           var isRealW=realWinner&&t&&realWinner.n===t.n
@@ -1026,7 +1043,7 @@ function KnockoutTab(props){
           </div>)
         })()}
       </div>)
-    })(i)
+    })(renderOrder[i])
   }
   return(
     <div>
