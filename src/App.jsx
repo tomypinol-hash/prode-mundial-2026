@@ -268,18 +268,21 @@ function calcScore(prode,results){
     Object.keys(allIds).forEach(function(id){
       var pred=rd[id],real=results[id],realScore=results[id+'_score']
       if(!real)return
-      // Si el marcador real (tiempo reglamentario) fue empate, el partido se definio por penales
-      // y nadie puede "acertar el ganador" — no corresponde el punto de ganador para nadie
-      var raW=realScore?parseInt(realScore.a):NaN,rbW=realScore?parseInt(realScore.b):NaN
-      var realWasDraw=!isNaN(raW)&&!isNaN(rbW)&&raW===rbW
-      // Punto por acertar ganador (independiente) — solo si el partido no fue empate
-      if(pred&&pred.n===real.n&&!realWasDraw)pts+=r.p
-      // Puntos por marcador exacto (independiente)
       var predSc=ks[id]
-      if(predSc&&realScore){
-        var pa=parseInt(predSc.a),pb=parseInt(predSc.b),ra=parseInt(realScore.a),rb=parseInt(realScore.b)
-        if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)pts+=r.pe
+      var pa=predSc?parseInt(predSc.a):NaN,pb=predSc?parseInt(predSc.b):NaN
+      var ra=realScore?parseInt(realScore.a):NaN,rb=realScore?parseInt(realScore.b):NaN
+      var realWasDraw=!isNaN(ra)&&!isNaN(rb)&&ra===rb
+      var predWasDraw=!isNaN(pa)&&!isNaN(pb)&&pa===pb
+      // Punto por acertar ganador (independiente):
+      // - Si el partido NO fue empate: alcanza con haber elegido bien el ganador
+      // - Si el partido SI fue empate (se definio por penales): solo cuenta si el jugador
+      //   tambien predijo el empate (no un ganador claro) Y ademas acerto quien ganaba los penales
+      if(pred&&pred.n===real.n){
+        if(!realWasDraw)pts+=r.p
+        else if(predWasDraw)pts+=r.p
       }
+      // Puntos por marcador exacto (independiente)
+      if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)pts+=r.pe
     })
   })
   return pts
@@ -1111,8 +1114,11 @@ function KnockoutTab(props){
           var rp=roundP[round]||{p:1,pe:2}
           var raW=parseInt(realScore.a),rbW=parseInt(realScore.b)
           var realWasDraw=!isNaN(raW)&&!isNaN(rbW)&&raW===rbW
-          // Si el partido termino empatado (se definio por penales), nadie "acierta el ganador"
-          var acertoGanador=w&&realWinner&&w.n===realWinner.n&&!realWasDraw
+          var paW=sc?parseInt(sc.a):NaN,pbW=sc?parseInt(sc.b):NaN
+          var predWasDraw=!isNaN(paW)&&!isNaN(pbW)&&paW===pbW
+          // Si el partido termino empatado (se definio por penales), el punto de ganador solo
+          // cuenta si el jugador tambien predijo el empate y ademas acerto quien ganaba penales
+          var acertoGanador=w&&realWinner&&w.n===realWinner.n&&(!realWasDraw||predWasDraw)
           var acertoExacto=false
           if(sc&&realScore){
             var pa=parseInt(sc.a),pb=parseInt(sc.b),ra=parseInt(realScore.a),rb=parseInt(realScore.b)
@@ -1176,8 +1182,11 @@ function FinalTab(props){
   if(realFinalWinner){
     var rfaW=realFinalScore?parseInt(realFinalScore.a):NaN,rfbW=realFinalScore?parseInt(realFinalScore.b):NaN
     var finalWasDraw=!isNaN(rfaW)&&!isNaN(rfbW)&&rfaW===rfbW
-    // Si la final termino empatada (se definio por penales), no corresponde el punto de "campeon acertado"
-    var acertoGanadorFinal=champ&&champ.n===realFinalWinner.n&&!finalWasDraw
+    var pfaW=finalSc?parseInt(finalSc.a):NaN,pfbW=finalSc?parseInt(finalSc.b):NaN
+    var predFinalWasDraw=!isNaN(pfaW)&&!isNaN(pfbW)&&pfaW===pfbW
+    // Si la final termino empatada (se definio por penales), el punto de "campeon acertado" solo
+    // cuenta si el jugador tambien predijo el empate y ademas acerto quien ganaba los penales
+    var acertoGanadorFinal=champ&&champ.n===realFinalWinner.n&&(!finalWasDraw||predFinalWasDraw)
     var exactoFinal=false
     if(finalSc&&realFinalScore){
       var pfa=parseInt(finalSc.a),pfb=parseInt(finalSc.b),rfa=parseInt(realFinalScore.a),rfb=parseInt(realFinalScore.b)
