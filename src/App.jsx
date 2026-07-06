@@ -272,7 +272,8 @@ function calcScore(prode,results){
       var pa=predSc?parseInt(predSc.a):NaN,pb=predSc?parseInt(predSc.b):NaN
       var ra=realScore?parseInt(realScore.a):NaN,rb=realScore?parseInt(realScore.b):NaN
       // Punto por acertar ganador (independiente): alcanza con haber elegido bien el equipo,
-      // sin importar si el partido se definio por penales o si predijo empate o no
+      // sin importar si el partido se definio por penales o si predijo empate o no.
+      // Si no eligio ningun equipo, no corresponde nada (elegir equipo es obligatorio en empates)
       if(pred&&pred.n===real.n)pts+=r.p
       // Puntos por marcador exacto (independiente)
       if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)pts+=r.pe
@@ -1120,7 +1121,8 @@ function KnockoutTab(props){
           var rp=roundP[round]||{p:1,pe:2}
           var raW=parseInt(realScore.a),rbW=parseInt(realScore.b)
           var paW=sc?parseInt(sc.a):NaN,pbW=sc?parseInt(sc.b):NaN
-          // Acertar el equipo ganador siempre suma el punto, sin importar penales ni empates
+          // Acertar el equipo ganador siempre suma el punto. Si no eligio ningun equipo,
+          // no corresponde nada (elegir equipo es obligatorio en empates)
           var acertoGanador=w&&realWinner&&w.n===realWinner.n
           var acertoExacto=false
           if(sc&&realScore){
