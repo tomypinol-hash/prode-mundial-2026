@@ -285,6 +285,8 @@ function calcScore(prode,results){
       if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)pts+=r.pe
     })
   })
+  // Ajuste manual del admin (correcciones puntuales, no altera la regla general de puntaje)
+  pts+=parseInt(prode.ajusteManual)||0
   return pts
 }
 
