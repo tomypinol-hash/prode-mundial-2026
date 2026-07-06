@@ -1109,6 +1109,16 @@ function KnockoutTab(props){
             {matchLocked?<span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>:matchTl&&<span style={{color:C.gold,fontSize:10,marginLeft:'auto'}}>{matchTl}</span>}
           </div>
         )}
+        {(function(){
+          var pa3=sc?parseInt(sc.a):NaN,pb3=sc?parseInt(sc.b):NaN
+          var esEmpateCargado=!isNaN(pa3)&&!isNaN(pb3)&&pa3===pb3
+          if(esEmpateCargado&&!w&&!matchLocked&&!readonly){
+            return(<div style={{padding:'6px 10px',background:'#fff3e0',borderTop:'1px solid '+C.gold,fontSize:11,color:'#a06a00',fontWeight:600}}>
+              ⚠️ Puso empate — falta elegir arriba quién ganaría por penales
+            </div>)
+          }
+          return null
+        })()}
         {realScore&&(function(){
           var roundP={r32:{p:1,pe:2},r16:{p:2,pe:4},qf:{p:3,pe:6},sf:{p:3,pe:6},final:{p:3,pe:6}}
           var rp=roundP[round]||{p:1,pe:2}
