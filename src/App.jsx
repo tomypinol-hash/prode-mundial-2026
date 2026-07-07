@@ -1050,11 +1050,6 @@ function KnockoutTab(props){
   var readonly=props.readonly,isOwn=props.isOwn,realStandings=props.realStandings
   var [localSaving,setLocalSaving]=useState(false)
   async function handleSaveClick(){setLocalSaving(true);await setProde(prode);setLocalSaving(false)}
-  // Privacidad: octavos en adelante bloqueado para ver ajeno hasta que la fase cierre
-  var privadoRounds=['r16','qf','sf']
-  if(readonly&&!isOwn&&privadoRounds.includes(round)&&!isRoundLocked(round)){
-    return <PrivadoBloqueo round={round}/>
-  }
   var roundLocked=isRoundLocked(round),count=ROUND_COUNTS[round],items=[]
   function setKnockoutScore(id,side,val,ta,tb){
     if(isMatchLocked_KO(id)||readonly)return
@@ -1096,6 +1091,17 @@ function KnockoutTab(props){
       // Para r32, cada partido tiene su propio cierre
       var matchLocked=isMatchLocked_KO(id)
       var matchTl=timeLeftKOStr(id)
+      // Privacidad: octavos en adelante, el pronostico ajeno de ESTE partido puntual
+      // se oculta hasta que ESE partido cierre (no toda la ronda de una)
+      var privadoRounds=['r16','qf','sf']
+      if(readonly&&!isOwn&&privadoRounds.includes(round)&&!matchLocked){
+        items.push(<div key={id} style={Object.assign({},sCard,{marginBottom:8,padding:'16px',textAlign:'center'})}>
+          <div style={{background:C.red,color:'#fff',fontSize:11,textAlign:'center',padding:'3px',margin:'-16px -16px 12px -16px'}}>{ROUND_LABELS[round]} {i+1}{matchDateTime?' — '+matchDateTime:''}</div>
+          <div style={{fontSize:22}}>🔒</div>
+          <div style={{fontSize:12,color:C.gray,marginTop:4}}>Se revela cuando cierre este partido{matchTl?' (en '+matchTl+')':''}</div>
+        </div>)
+        return
+      }
       items.push(<div key={id} style={Object.assign({},sCard,{marginBottom:8})}>
         <div style={{background:C.red,color:'#fff',fontSize:11,textAlign:'center',padding:'3px'}}>{ROUND_LABELS[round]} {i+1}{matchDateTime?' — '+matchDateTime:''}</div>
         {[ta,tb].map(function(t,ti){
