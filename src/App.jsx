@@ -774,11 +774,28 @@ export default function App(){
     var koResults={}
     var cur2=await dbGetResults()
     var currentPhase=getActiveTab()
-    // Por defecto solo sincronizamos la fase actual, para no re-pedir (y potencialmente
-    // pisar) datos de fases ya cerradas y ahorrar requests de la API (limite 100/dia)
+    var allRounds=['r32','r16','qf','sf','final']
+    function isRoundFullySynced(round){
+      if(round==='final')return !!(cur2&&cur2.final_m)
+      var count=ROUND_COUNTS[round]
+      if(!count)return false
+      for(var i=0;i<count;i++){if(!cur2||!cur2[round+'_'+i])return false}
+      return true
+    }
+    // Por defecto sincronizamos la fase actual y, solo si a la fase inmediata anterior
+    // todavia le falta algun resultado, esa tambien — para no repetir de mas si ya esta
+    // completa, pero sin perder partidos que quedan justo en el limite entre dos fases
     var rounds=onlyCurrentPhase
-      ? (currentPhase==='groups'?[]:[currentPhase])
-      : ['r32','r16','qf','sf','final']
+      ? (currentPhase==='groups'?[]:(function(){
+          var idx=allRounds.indexOf(currentPhase)
+          var list=[currentPhase]
+          if(idx>0){
+            var prevRound=allRounds[idx-1]
+            if(!isRoundFullySynced(prevRound))list.unshift(prevRound)
+          }
+          return list
+        })())
+      : allRounds
     for(var i=0;i<rounds.length;i++){
       var kr=await fetchKnockoutResults(rounds[i],standings,Object.assign({},cur2,koResults))
       Object.assign(koResults,kr)
@@ -1280,7 +1297,7 @@ function AdminPanel(props){
   var [saving,setSaving]=useState(false)
   var sorted=[...players].sort(function(a,b){return calcScore(b.prode,results)-calcScore(a.prode,results)})
   async function handleSave(){setSaving(true);await saveResults(localResults);setSaving(false)}
-  async function handleSync(){setSaving(true);await syncAll(true);alert('Sincronizada la fase actual ('+({groups:'Grupos',r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis',final:'Final'}[getActiveTab()]||getActiveTab())+')');setSaving(false)}
+  async function handleSync(){setSaving(true);await syncAll(true);alert('Sincronizado hasta la fase actual ('+({groups:'Grupos',r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis',final:'Final'}[getActiveTab()]||getActiveTab())+' inclusive)');setSaving(false)}
   async function handleSyncFull(){if(!window.confirm('Esto va a pedir datos de TODAS las fases (grupos + 16avos + octavos + cuartos + semis + final), gasta mas requests de la API. Seguro?'))return;setSaving(true);await syncAll(false);alert('Sincronizado TODO!');setSaving(false)}
   function setResult(matchId,side,val){var key=matchId+'_score';var cur=localResults[key]||{a:'',b:''};setLocalResults(Object.assign({},localResults,{[key]:Object.assign({},cur,{[side]:val})}))}
   return(
@@ -1347,8 +1364,8 @@ function AdminPanel(props){
         {activeTab==='resultados'&&(
           <div>
             <div style={{fontSize:14,fontWeight:500,color:C.blue,marginBottom:6}}>Resultados y standings</div>
-            <div style={{fontSize:12,color:C.gray,marginBottom:8}}>Se sincronizan automáticamente cada 5 minutos (solo la fase actual).</div>
-            <button onClick={handleSync} style={sBtn(C.green,{marginBottom:6})} disabled={saving}>{saving?'Sincronizando...':'🔄 Sincronizar fase actual'}</button>
+            <div style={{fontSize:12,color:C.gray,marginBottom:8}}>Se sincronizan automáticamente cada 5 minutos (fase actual + anteriores).</div>
+            <button onClick={handleSync} style={sBtn(C.green,{marginBottom:6})} disabled={saving}>{saving?'Sincronizando...':'🔄 Sincronizar'}</button>
             <button onClick={handleSyncFull} style={sBtn('#999',{marginBottom:12,fontSize:12,padding:'6px 12px'})} disabled={saving}>Forzar sincronización completa (todas las fases)</button>
             {results.real_standings&&(
               <div style={{background:'#eafff0',border:'1px solid '+C.green,borderRadius:8,padding:'10px',marginBottom:12,fontSize:12}}>
