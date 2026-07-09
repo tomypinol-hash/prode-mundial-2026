@@ -167,6 +167,8 @@ const MATCH_DATES = {
   sf_1:   new Date('2026-07-15T16:00:00-03:00'), // M102 3pm ET Atlanta
   // Final (Jul 19)
   final_m: new Date('2026-07-19T16:00:00-03:00'), // Final 3pm ET New York NJ
+  // 3er puesto (Jul 18, un dia antes de la Final — Miami Stadium, 5pm ET)
+  third_m: new Date('2026-07-18T18:00:00-03:00'),
 }
 
 const LOCK_MINS = 20
@@ -481,6 +483,7 @@ var MATCH_DATETIME={
   qf_2:'Sáb 11/7 18:00',qf_3:'Sáb 11/7 22:00',
   sf_0:'Mar 14/7 16:00',sf_1:'Mié 15/7 16:00',
   final_m:'Dom 19/7 16:00',
+  third_m:'Sáb 18/7 18:00',
 }
 
 function getTeamsForMatch(round,idx,prode,realStandings,results){
@@ -693,6 +696,19 @@ function getUpcomingLockWarnings(players,now){
       }
     }
   })
+  // 3er puesto
+  var thirdD=MATCH_DATES.third_m
+  if(thirdD){
+    var thirdLock=new Date(thirdD.getTime()-LOCK_MINS*60000)
+    var minsToLockThird=(thirdLock-now)/60000
+    if(minsToLockThird>0&&minsToLockThird<=WARNING_MINS){
+      var missingThird=activePlayers.filter(function(p){
+        var w=p.prode&&p.prode.third&&p.prode.third.third
+        return !w
+      }).map(function(p){return p.player_name})
+      if(missingThird.length>0)warnings.push({id:'third_m',label:'3er Puesto',lockTime:thirdLock,missing:missingThird})
+    }
+  }
   // Final
   var finalD=MATCH_DATES.final_m
   if(finalD){
@@ -1194,11 +1210,9 @@ function KnockoutTab(props){
 
 function FinalTab(props){
   var prode=props.prode,results=props.results,setProde=props.setProde,readonly=props.readonly,isOwn=props.isOwn
-  // Privacidad final
-  if(readonly&&!isOwn&&!isRoundLocked('final')){
-    return <PrivadoBloqueo round='final'/>
-  }
-  var locked=isMatchLocked_KO('final_m'),tl=timeLeftKOStr('final_m')
+  var lockedFinal=isMatchLocked_KO('final_m'),tl=timeLeftKOStr('final_m')
+  var lockedThird=isMatchLocked_KO('third_m'),tlThird=timeLeftKOStr('third_m')
+  var locked=lockedFinal // alias para no romper el resto de la logica de la Final
   var sf0w=(prode.sf&&prode.sf.sf_0)||null,sf1w=(prode.sf&&prode.sf.sf_1)||null
   var qf0=(prode.qf&&prode.qf.qf_0)||null,qf1=(prode.qf&&prode.qf.qf_1)||null
   var qf2=(prode.qf&&prode.qf.qf_2)||null,qf3=(prode.qf&&prode.qf.qf_3)||null
@@ -1219,9 +1233,13 @@ function FinalTab(props){
     }
     finalPts=(acertoGanadorFinal?3:0)+(exactoFinal?6:0)
   }
-  function pick(matchId,team,field){if(locked||readonly)return;setProde(Object.assign({},prode,{[field]:Object.assign({},prode[field],{[matchId]:team})}))}
+  function pick(matchId,team,field){
+    var lk=field==='third'?lockedThird:lockedFinal
+    if(lk||readonly)return
+    setProde(Object.assign({},prode,{[field]:Object.assign({},prode[field],{[matchId]:team})}))
+  }
   function setKScore(side,val,t1,t2){
-    if(locked||readonly)return
+    if(lockedFinal||readonly)return
     var ks=Object.assign({},prode.knockoutScores||{}),fn=Object.assign({},ks.final||{})
     var cur=fn.final_m||{a:'',b:''}
     var newSc=Object.assign({},cur,{[side]:val})
@@ -1232,51 +1250,85 @@ function FinalTab(props){
     if(!isNaN(pa)&&!isNaN(pb)&&pa!==pb&&t1&&t2){
       var winner=pa>pb?t1:t2
       newProde=Object.assign({},newProde,{final:Object.assign({},prode.final,{final_m:winner})})
+    } else if(!isNaN(pa)&&!isNaN(pb)&&pa===pb){
+      // Empate — limpiar ganador para que el jugador elija manualmente quien gana penales
+      var f2=Object.assign({},prode.final)
+      delete f2.final_m
+      newProde=Object.assign({},newProde,{final:f2})
     }
     setProde(newProde)
   }
-  function MRow(t,id,field,w){
+  function MRow(t,id,field,w,lockedRow){
     var isW=w&&t&&w.n===t.n
-    var isRealW=realFinalWinner&&t&&realFinalWinner.n===t.n
-    return(<div style={Object.assign({},sMatchTeam(isW),{cursor:(locked||!t||readonly)?'default':'pointer',background:isRealW?'#eafff0':isW?'#e3f0fb':'#fff'})} onClick={function(){if(t&&!locked&&!readonly)pick(id,t,field)}}>
+    var isRealW=(field==='third'?false:realFinalWinner)&&t&&realFinalWinner&&realFinalWinner.n===t.n
+    return(<div style={Object.assign({},sMatchTeam(isW),{cursor:(lockedRow||!t||readonly)?'default':'pointer',background:isRealW?'#eafff0':isW?'#e3f0fb':'#fff'})} onClick={function(){if(t&&!lockedRow&&!readonly)pick(id,t,field)}}>
       {t?<><img src={flag(t.f)} alt={t.n} style={{width:20,height:14,objectFit:'cover'}}/><span style={{flex:1}}>{t.n}</span>{isRealW&&<span style={{color:C.green,fontSize:11,fontWeight:700}}>✓ Real</span>}{!isRealW&&isW&&<span style={{color:C.blue,fontSize:11}}>✓ Mi prode</span>}</>:<span style={{color:'#aaa',fontSize:12,fontStyle:'italic'}}>Por definir</span>}
     </div>)
   }
+  var thirdOculto=readonly&&!isOwn&&!lockedThird
+  var finalOculto=readonly&&!isOwn&&!lockedFinal
   return(
     <div>
-      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>{locked?<span style={sLock}>Cerrado</span>:(tl&&<span style={{color:C.gold,fontSize:12,fontWeight:500}}>{tl} para el cierre</span>)}</div>
-      {champ&&<div style={{textAlign:'center',padding:'14px',background:'linear-gradient(135deg,rgba(192,57,43,.1),rgba(21,101,192,.1))',borderRadius:12,marginBottom:12,border:'2px solid '+C.gold}}><img src={flag(champ.f)} alt={champ.n} style={{width:36,height:27,objectFit:'cover',marginBottom:6}}/><div style={{fontSize:17,fontWeight:700,color:C.blue}}>{champ.n}</div><div style={{fontSize:12,color:C.gray}}>Tu campeon Mundial 2026</div></div>}
       <div style={{fontSize:13,fontWeight:500,color:C.gray,marginBottom:6}}>3er Puesto</div>
       <div style={Object.assign({},sCard,{marginBottom:12})}>
-        <div style={{background:'#888',color:'#fff',fontSize:11,textAlign:'center',padding:'3px'}}>3er Puesto</div>
-        {MRow(loser0,'third','third',(prode.third&&prode.third.third)||null)}
-        {MRow(loser1,'third','third',(prode.third&&prode.third.third)||null)}
+        <div style={{background:'#888',color:'#fff',fontSize:11,textAlign:'center',padding:'3px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <span style={{flex:1}}>3er Puesto{MATCH_DATETIME.third_m?' — '+MATCH_DATETIME.third_m:''}</span>
+          {lockedThird?<span style={{fontSize:10}}>Cerrado</span>:(tlThird&&<span style={{color:C.gold,fontSize:10}}>{tlThird}</span>)}
+        </div>
+        {thirdOculto?(
+          <div style={{padding:'16px',textAlign:'center'}}>
+            <div style={{fontSize:22}}>🔒</div>
+            <div style={{fontSize:12,color:C.gray,marginTop:4}}>Se revela cuando cierre este partido{tlThird?' (en '+tlThird+')':''}</div>
+          </div>
+        ):(<>
+          {MRow(loser0,'third','third',(prode.third&&prode.third.third)||null,lockedThird)}
+          {MRow(loser1,'third','third',(prode.third&&prode.third.third)||null,lockedThird)}
+        </>)}
       </div>
       <div style={{fontSize:13,fontWeight:500,color:C.red,marginBottom:6}}>Gran Final</div>
       <div style={Object.assign({},sCard,{border:'2px solid '+C.gold})}>
         <div style={{background:C.gold,color:'#4a2800',fontSize:12,textAlign:'center',padding:'4px',fontWeight:600}}>FINAL MUNDIAL 2026</div>
-        {MRow(sf0w,'final_m','final',(prode.final&&prode.final.final_m)||null)}
-        {MRow(sf1w,'final_m','final',(prode.final&&prode.final.final_m)||null)}
-        {(sf0w&&sf1w)&&(
-          <div style={{padding:'6px 10px',borderTop:'1px solid #f0f0f0',display:'flex',alignItems:'center',gap:6,fontSize:12}}>
-            <span style={{color:C.gray,fontSize:11}}>Marcador:</span>
-            <img src={flag((sf0w||{f:'ar'}).f)} alt="" style={{width:16,height:11}}/>
-            <input type="number" min="0" max="20" value={finalSc?finalSc.a:''} onChange={function(e){setKScore('a',e.target.value,sf0w,sf1w)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
-            <span style={{color:C.gray}}>-</span>
-            <input type="number" min="0" max="20" value={finalSc?finalSc.b:''} onChange={function(e){setKScore('b',e.target.value,sf0w,sf1w)}} disabled={locked||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
-            <img src={flag((sf1w||{f:'fr'}).f)} alt="" style={{width:16,height:11}}/>
-            {locked&&<span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>}
+        {finalOculto?(
+          <div style={{padding:'16px',textAlign:'center'}}>
+            <div style={{fontSize:22}}>🔒</div>
+            <div style={{fontSize:12,color:C.gray,marginTop:4}}>Se revela cuando cierre la Final{tl?' (en '+tl+')':''}</div>
           </div>
-        )}
-        {realFinalScore&&(
-          <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:finalPts>0?(finalPts===9?'#eafff0':'#fff8e1'):'#ffeaea',borderRadius:6,fontSize:11,margin:'0 6px 6px 6px'}}>
-            <span style={{color:C.gray}}>Real:</span>
-            <span style={{fontWeight:700}}>{realFinalScore.a} - {realFinalScore.b}</span>
-            {finalPts!==null&&<span style={{marginLeft:'auto',fontWeight:700,color:finalPts>0?(finalPts===9?C.green:C.gold):C.red}}>
-              {finalPts>0?'✅ +'+finalPts+'pts':'❌ 0pts'}
-            </span>}
-          </div>
-        )}
+        ):(<>
+          <div style={{display:'flex',justifyContent:'flex-end',padding:'4px 8px'}}>{lockedFinal?<span style={sLock}>Cerrado</span>:(tl&&<span style={{color:C.gold,fontSize:12,fontWeight:500}}>{tl} para el cierre</span>)}</div>
+          {champ&&<div style={{textAlign:'center',padding:'14px',background:'linear-gradient(135deg,rgba(192,57,43,.1),rgba(21,101,192,.1))',borderRadius:12,margin:'0 8px 12px 8px',border:'2px solid '+C.gold}}><img src={flag(champ.f)} alt={champ.n} style={{width:36,height:27,objectFit:'cover',marginBottom:6}}/><div style={{fontSize:17,fontWeight:700,color:C.blue}}>{champ.n}</div><div style={{fontSize:12,color:C.gray}}>Tu campeon Mundial 2026</div></div>}
+          {MRow(sf0w,'final_m','final',(prode.final&&prode.final.final_m)||null,lockedFinal)}
+          {MRow(sf1w,'final_m','final',(prode.final&&prode.final.final_m)||null,lockedFinal)}
+          {(sf0w&&sf1w)&&(
+            <div style={{padding:'6px 10px',borderTop:'1px solid #f0f0f0',display:'flex',alignItems:'center',gap:6,fontSize:12}}>
+              <span style={{color:C.gray,fontSize:11}}>Marcador:</span>
+              <img src={flag((sf0w||{f:'ar'}).f)} alt="" style={{width:16,height:11}}/>
+              <input type="number" min="0" max="20" value={finalSc?finalSc.a:''} onChange={function(e){setKScore('a',e.target.value,sf0w,sf1w)}} disabled={lockedFinal||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+              <span style={{color:C.gray}}>-</span>
+              <input type="number" min="0" max="20" value={finalSc?finalSc.b:''} onChange={function(e){setKScore('b',e.target.value,sf0w,sf1w)}} disabled={lockedFinal||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+              <img src={flag((sf1w||{f:'fr'}).f)} alt="" style={{width:16,height:11}}/>
+              {lockedFinal&&<span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>}
+            </div>
+          )}
+          {(function(){
+            var pa3=finalSc?parseInt(finalSc.a):NaN,pb3=finalSc?parseInt(finalSc.b):NaN
+            var esEmpateCargado=!isNaN(pa3)&&!isNaN(pb3)&&pa3===pb3
+            if(esEmpateCargado&&!champ&&!lockedFinal&&!readonly){
+              return(<div style={{padding:'6px 10px',background:'#fff3e0',borderTop:'1px solid '+C.gold,fontSize:11,color:'#a06a00',fontWeight:600}}>
+                ⚠️ Puso empate — falta elegir arriba quién ganaría por penales
+              </div>)
+            }
+            return null
+          })()}
+          {realFinalScore&&(
+            <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:finalPts>0?(finalPts===9?'#eafff0':'#fff8e1'):'#ffeaea',borderRadius:6,fontSize:11,margin:'0 6px 6px 6px'}}>
+              <span style={{color:C.gray}}>Real:</span>
+              <span style={{fontWeight:700}}>{realFinalScore.a} - {realFinalScore.b}</span>
+              {finalPts!==null&&<span style={{marginLeft:'auto',fontWeight:700,color:finalPts>0?(finalPts===9?C.green:C.gold):C.red}}>
+                {finalPts>0?'✅ +'+finalPts+'pts':'❌ 0pts'}
+              </span>}
+            </div>
+          )}
+        </>)}
       </div>
     </div>
   )
