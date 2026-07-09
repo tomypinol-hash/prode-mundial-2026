@@ -157,11 +157,11 @@ const MATCH_DATES = {
   r16_5:  new Date('2026-07-05T21:00:00-03:00'), // Mexico vs Inglaterra 8pm ET
   r16_6:  new Date('2026-07-07T13:00:00-03:00'), // M95 12pm ET Atlanta
   r16_7:  new Date('2026-07-07T17:00:00-03:00'), // M96 4pm ET Vancouver
-  // Cuartos (Jul 9-10)
-  qf_0:   new Date('2026-07-09T17:00:00-03:00'), // M97 4pm ET Boston
-  qf_1:   new Date('2026-07-09T22:00:00-03:00'), // M100 9pm ET Kansas City
-  qf_2:   new Date('2026-07-10T16:00:00-03:00'), // M98 3pm ET Los Angeles
-  qf_3:   new Date('2026-07-10T18:00:00-03:00'), // M99 5pm ET Miami
+  // Cuartos (Jul 9-11) — fechas asignadas segun el equipo real de cada cruce
+  qf_0:   new Date('2026-07-09T17:00:00-03:00'), // Francia vs Marruecos, Boston, 4pm ET
+  qf_1:   new Date('2026-07-10T16:00:00-03:00'), // Espana vs Belgica, Los Angeles, 3pm ET
+  qf_2:   new Date('2026-07-11T18:00:00-03:00'), // Noruega vs Inglaterra, Miami, 5pm ET
+  qf_3:   new Date('2026-07-11T22:00:00-03:00'), // Argentina vs Suiza, Kansas City, 9pm ET
   // Semis (Jul 14-15)
   sf_0:   new Date('2026-07-14T16:00:00-03:00'), // M101 3pm ET Dallas
   sf_1:   new Date('2026-07-15T16:00:00-03:00'), // M102 3pm ET Atlanta
@@ -477,10 +477,10 @@ var MATCH_DATETIME={
   r16_2:'Lun 6/7 16:00',r16_3:'Lun 6/7 21:00',
   r16_4:'Dom 5/7 17:00',r16_5:'Dom 5/7 21:00',
   r16_6:'Mar 7/7 13:00',r16_7:'Mar 7/7 17:00',
-  qf_0:'Mié 9/7 17:00',qf_1:'Mié 9/7 22:00',
-  qf_2:'Jue 10/7 16:00',qf_3:'Jue 10/7 18:00',
-  sf_0:'Lun 14/7 16:00',sf_1:'Mar 15/7 16:00',
-  final_m:'Sáb 19/7 16:00',
+  qf_0:'Jue 9/7 17:00',qf_1:'Vie 10/7 16:00',
+  qf_2:'Sáb 11/7 18:00',qf_3:'Sáb 11/7 22:00',
+  sf_0:'Mar 14/7 16:00',sf_1:'Mié 15/7 16:00',
+  final_m:'Dom 19/7 16:00',
 }
 
 function getTeamsForMatch(round,idx,prode,realStandings,results){
