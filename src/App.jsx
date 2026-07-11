@@ -1358,6 +1358,7 @@ function AdminPanel(props){
   async function handleSync(){setSaving(true);await syncAll(true);alert('Sincronizado hasta la fase actual ('+({groups:'Grupos',r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis',final:'Final'}[getActiveTab()]||getActiveTab())+' inclusive)');setSaving(false)}
   async function handleSyncFull(){if(!window.confirm('Esto va a pedir datos de TODAS las fases (grupos + 16avos + octavos + cuartos + semis + final), gasta mas requests de la API. Seguro?'))return;setSaving(true);await syncAll(false);alert('Sincronizado TODO!');setSaving(false)}
   function setResult(matchId,side,val){var key=matchId+'_score';var cur=localResults[key]||{a:'',b:''};setLocalResults(Object.assign({},localResults,{[key]:Object.assign({},cur,{[side]:val})}))}
+  function setResultPenalty(matchId,side,val){var key=matchId+'_penalty';var cur=localResults[key]||{a:'',b:''};setLocalResults(Object.assign({},localResults,{[key]:Object.assign({},cur,{[side]:val})}))}
   return(
     <div style={{maxWidth:600,margin:'0 auto',padding:'8px'}}>
       <div style={sHeader}>
@@ -1521,7 +1522,12 @@ function AdminPanel(props){
                           }} style={{padding:'1px 6px',border:'1px solid '+(isW?C.green:C.border),borderRadius:3,background:isW?'#eafff0':'#fff',color:isW?C.green:C.gray,cursor:'pointer',fontSize:10}}>{t.n}</button>)
                         })}
                         {r&&r.n&&<span style={{color:C.green,marginLeft:4}}>✓ {r.n}</span>}
-                        {pen&&<span style={{color:C.gray,marginLeft:4}}>⚡ pen: {pen.a}-{pen.b}</span>}
+                        {(sc.a!==''&&sc.b!==''&&sc.a===sc.b)&&(<span style={{display:'flex',alignItems:'center',gap:2,marginLeft:4}}>
+                          <span style={{color:C.gray}}>⚡ pen:</span>
+                          <input type="number" min="0" max="20" value={pen?pen.a:''} onChange={function(e){setResultPenalty(id,'a',e.target.value)}} style={{width:22,padding:'1px',textAlign:'center',border:'1px solid '+C.border,borderRadius:3,fontSize:10}} placeholder="-"/>
+                          <span style={{color:C.gray}}>-</span>
+                          <input type="number" min="0" max="20" value={pen?pen.b:''} onChange={function(e){setResultPenalty(id,'b',e.target.value)}} style={{width:22,padding:'1px',textAlign:'center',border:'1px solid '+C.border,borderRadius:3,fontSize:10}} placeholder="-"/>
+                        </span>)}
                       </div>
                     </div>)
                   })}
