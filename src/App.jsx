@@ -281,6 +281,18 @@ function calcScore(prode,results){
       if(!isNaN(pa)&&!isNaN(pb)&&!isNaN(ra)&&!isNaN(rb)&&pa===ra&&pb===rb)pts+=r.pe
     })
   })
+  // 3er puesto: suma igual que las Semis (3pt ganador + 6pts exacto), independiente del resto
+  var thirdPred=prode.third&&prode.third.third
+  var thirdReal=results['third_m']
+  var thirdRealScore=results['third_m_score']
+  var thirdPredSc=prode.knockoutScores&&prode.knockoutScores.third&&prode.knockoutScores.third.third
+  if(thirdReal){
+    if(thirdPred&&thirdPred.n===thirdReal.n)pts+=3
+    if(thirdPredSc&&thirdRealScore){
+      var tpa=parseInt(thirdPredSc.a),tpb=parseInt(thirdPredSc.b),tra=parseInt(thirdRealScore.a),trb=parseInt(thirdRealScore.b)
+      if(!isNaN(tpa)&&!isNaN(tpb)&&!isNaN(tra)&&!isNaN(trb)&&tpa===tra&&tpb===trb)pts+=6
+    }
+  }
   // Ajustes manuales del admin por partido puntual (correcciones especificas, no altera la regla general)
   var ajustes=prode.ajustesManuales||{}
   Object.keys(ajustes).forEach(function(k){pts+=parseInt(ajustes[k])||0})
@@ -1210,18 +1222,24 @@ function KnockoutTab(props){
 
 function FinalTab(props){
   var prode=props.prode,results=props.results,setProde=props.setProde,readonly=props.readonly,isOwn=props.isOwn
+  var [localSaving,setLocalSaving]=useState(false)
   var lockedFinal=isMatchLocked_KO('final_m'),tl=timeLeftKOStr('final_m')
   var lockedThird=isMatchLocked_KO('third_m'),tlThird=timeLeftKOStr('third_m')
   var locked=lockedFinal // alias para no romper el resto de la logica de la Final
-  var sf0w=(prode.sf&&prode.sf.sf_0)||null,sf1w=(prode.sf&&prode.sf.sf_1)||null
-  var qf0=(prode.qf&&prode.qf.qf_0)||null,qf1=(prode.qf&&prode.qf.qf_1)||null
-  var qf2=(prode.qf&&prode.qf.qf_2)||null,qf3=(prode.qf&&prode.qf.qf_3)||null
+  async function handleSaveClick(){setLocalSaving(true);await setProde(prode);setLocalSaving(false)}
+  var sf0w=(results&&results.sf_0)||(prode.sf&&prode.sf.sf_0)||null,sf1w=(results&&results.sf_1)||(prode.sf&&prode.sf.sf_1)||null
+  var qf0=(results&&results.qf_0)||(prode.qf&&prode.qf.qf_0)||null,qf1=(results&&results.qf_1)||(prode.qf&&prode.qf.qf_1)||null
+  var qf2=(results&&results.qf_2)||(prode.qf&&prode.qf.qf_2)||null,qf3=(results&&results.qf_3)||(prode.qf&&prode.qf.qf_3)||null
   var loser0=sf0w?(sf0w.n===(qf0&&qf0.n)?qf1:qf0):null
   var loser1=sf1w?(sf1w.n===(qf2&&qf2.n)?qf3:qf2):null
   var champ=(prode.final&&prode.final.final_m)||null
+  var thirdPick=(prode.third&&prode.third.third)||null
   var finalSc=(prode.knockoutScores&&prode.knockoutScores.final&&prode.knockoutScores.final.final_m)||null
+  var thirdSc=(prode.knockoutScores&&prode.knockoutScores.third&&prode.knockoutScores.third.third)||null
   var realFinalWinner=results&&results['final_m']||null
   var realFinalScore=results&&results['final_m_score']||null
+  var realThirdWinner=results&&results['third_m']||null
+  var realThirdScore=results&&results['third_m_score']||null
   var finalPts=null
   if(realFinalWinner){
     // Acertar el campeon siempre suma el punto, sin importar penales ni empates
@@ -1232,6 +1250,17 @@ function FinalTab(props){
       if(!isNaN(pfa)&&!isNaN(pfb)&&!isNaN(rfa)&&!isNaN(rfb)&&pfa===rfa&&pfb===rfb)exactoFinal=true
     }
     finalPts=(acertoGanadorFinal?3:0)+(exactoFinal?6:0)
+  }
+  var thirdPts=null
+  if(realThirdWinner){
+    // Mismo puntaje que las Semis: 3pt ganador + 6pts exacto
+    var acertoGanadorThird=thirdPick&&thirdPick.n===realThirdWinner.n
+    var exactoThird=false
+    if(thirdSc&&realThirdScore){
+      var pta=parseInt(thirdSc.a),ptb=parseInt(thirdSc.b),rta=parseInt(realThirdScore.a),rtb=parseInt(realThirdScore.b)
+      if(!isNaN(pta)&&!isNaN(ptb)&&!isNaN(rta)&&!isNaN(rtb)&&pta===rta&&ptb===rtb)exactoThird=true
+    }
+    thirdPts=(acertoGanadorThird?3:0)+(exactoThird?6:0)
   }
   function pick(matchId,team,field){
     var lk=field==='third'?lockedThird:lockedFinal
@@ -1258,6 +1287,26 @@ function FinalTab(props){
     }
     setProde(newProde)
   }
+  function setKScoreThird(side,val,t1,t2){
+    if(lockedThird||readonly)return
+    var ks=Object.assign({},prode.knockoutScores||{}),tn=Object.assign({},ks.third||{})
+    var cur=tn.third||{a:'',b:''}
+    var newSc=Object.assign({},cur,{[side]:val})
+    tn.third=newSc
+    ks.third=tn
+    var pa=parseInt(newSc.a),pb=parseInt(newSc.b)
+    var newProde=Object.assign({},prode,{knockoutScores:ks})
+    if(!isNaN(pa)&&!isNaN(pb)&&pa!==pb&&t1&&t2){
+      var winner=pa>pb?t1:t2
+      newProde=Object.assign({},newProde,{third:Object.assign({},prode.third,{third:winner})})
+    } else if(!isNaN(pa)&&!isNaN(pb)&&pa===pb){
+      // Empate — limpiar ganador para que el jugador elija manualmente quien gana penales
+      var t2o=Object.assign({},prode.third)
+      delete t2o.third
+      newProde=Object.assign({},newProde,{third:t2o})
+    }
+    setProde(newProde)
+  }
   function MRow(t,id,field,w,lockedRow){
     var isW=w&&t&&w.n===t.n
     var isRealW=(field==='third'?false:realFinalWinner)&&t&&realFinalWinner&&realFinalWinner.n===t.n
@@ -1269,6 +1318,9 @@ function FinalTab(props){
   var finalOculto=readonly&&!isOwn&&!lockedFinal
   return(
     <div>
+      {!readonly&&<button onClick={handleSaveClick} disabled={localSaving} style={{width:'100%',padding:'12px',background:C.green,color:'#fff',border:'none',borderRadius:10,fontSize:15,fontWeight:700,cursor:'pointer',marginBottom:12,boxShadow:'0 2px 8px rgba(39,174,96,.4)'}}>
+        {localSaving?'Guardando...':'💾 Guardar pronósticos'}
+      </button>}
       <div style={{fontSize:13,fontWeight:500,color:C.gray,marginBottom:6}}>3er Puesto</div>
       <div style={Object.assign({},sCard,{marginBottom:12})}>
         <div style={{background:'#888',color:'#fff',fontSize:11,textAlign:'center',padding:'3px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -1283,6 +1335,36 @@ function FinalTab(props){
         ):(<>
           {MRow(loser0,'third','third',(prode.third&&prode.third.third)||null,lockedThird)}
           {MRow(loser1,'third','third',(prode.third&&prode.third.third)||null,lockedThird)}
+          {(loser0&&loser1)&&(
+            <div style={{padding:'6px 10px',borderTop:'1px solid #f0f0f0',display:'flex',alignItems:'center',gap:6,fontSize:12}}>
+              <span style={{color:C.gray,fontSize:11}}>Marcador:</span>
+              <img src={flag((loser0||{f:'ar'}).f)} alt="" style={{width:16,height:11}}/>
+              <input type="number" min="0" max="20" value={thirdSc?thirdSc.a:''} onChange={function(e){setKScoreThird('a',e.target.value,loser0,loser1)}} disabled={lockedThird||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+              <span style={{color:C.gray}}>-</span>
+              <input type="number" min="0" max="20" value={thirdSc?thirdSc.b:''} onChange={function(e){setKScoreThird('b',e.target.value,loser0,loser1)}} disabled={lockedThird||readonly} style={{width:32,padding:'2px',textAlign:'center',border:'1px solid '+C.border,borderRadius:4,fontSize:12}} placeholder="-"/>
+              <img src={flag((loser1||{f:'fr'}).f)} alt="" style={{width:16,height:11}}/>
+              {lockedThird&&<span style={{...sLock,marginLeft:'auto'}}>Cerrado</span>}
+            </div>
+          )}
+          {(function(){
+            var pa4=thirdSc?parseInt(thirdSc.a):NaN,pb4=thirdSc?parseInt(thirdSc.b):NaN
+            var esEmpateCargado=!isNaN(pa4)&&!isNaN(pb4)&&pa4===pb4
+            if(esEmpateCargado&&!thirdPick&&!lockedThird&&!readonly){
+              return(<div style={{padding:'6px 10px',background:'#fff3e0',borderTop:'1px solid '+C.gold,fontSize:11,color:'#a06a00',fontWeight:600}}>
+                ⚠️ Puso empate — falta elegir arriba quién ganaría por penales
+              </div>)
+            }
+            return null
+          })()}
+          {realThirdScore&&(
+            <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',background:thirdPts>0?(thirdPts===9?'#eafff0':'#fff8e1'):'#ffeaea',borderRadius:6,fontSize:11,margin:'6px 6px 0 6px'}}>
+              <span style={{color:C.gray}}>Real:</span>
+              <span style={{fontWeight:700}}>{realThirdScore.a} - {realThirdScore.b}</span>
+              {thirdPts!==null&&<span style={{marginLeft:'auto',fontWeight:700,color:thirdPts>0?(thirdPts===9?C.green:C.gold):C.red}}>
+                {thirdPts>0?'✅ +'+thirdPts+'pts':'❌ 0pts'}
+              </span>}
+            </div>
+          )}
         </>)}
       </div>
       <div style={{fontSize:13,fontWeight:500,color:C.red,marginBottom:6}}>Gran Final</div>
@@ -1330,6 +1412,9 @@ function FinalTab(props){
           )}
         </>)}
       </div>
+      {!readonly&&<button onClick={handleSaveClick} disabled={localSaving} style={{width:'100%',padding:'12px',background:C.green,color:'#fff',border:'none',borderRadius:10,fontSize:15,fontWeight:700,cursor:'pointer',marginTop:12,boxShadow:'0 2px 8px rgba(39,174,96,.4)'}}>
+        {localSaving?'Guardando...':'💾 Guardar pronósticos'}
+      </button>}
     </div>
   )
 }
@@ -1476,9 +1561,9 @@ function AdminPanel(props){
               )}
 
               {/* Carga manual por fase */}
-              {['r32','r16','qf','sf','final'].map(function(round){
-                var labels={r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis',final:'Final'}
-                var counts={r32:16,r16:8,qf:4,sf:2,final:1}
+              {['r32','r16','qf','sf','third','final'].map(function(round){
+                var labels={r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis',third:'3er Puesto',final:'Final'}
+                var counts={r32:16,r16:8,qf:4,sf:2,third:1,final:1}
                 var count=counts[round]
                 var classified=localResults.real_standings&&localResults.real_standings.classified
                 var thirds=localResults.real_standings&&localResults.real_standings.thirds
@@ -1491,13 +1576,20 @@ function AdminPanel(props){
                 return(<div key={round} style={{marginBottom:12}}>
                   <div style={{fontSize:12,fontWeight:600,color:C.blue,marginBottom:6,borderBottom:'1px solid '+C.border,paddingBottom:2}}>{labels[round]}</div>
                   {Array.from({length:count},function(_,idx){
-                    var id=round==='final'?'final_m':round+'_'+idx
+                    var id=round==='final'?'final_m':round==='third'?'third_m':round+'_'+idx
                     var r=localResults[id]||{}
                     var sc=localResults[id+'_score']||{a:'',b:''}
                     var pen=localResults[id+'_penalty']||null
                     var t1=null,t2=null
                     if(round==='r32'&&pairs&&classified){t1=getTeam(pairs[idx][0],pairs[idx][1]);t2=getTeam(pairs[idx][2],pairs[idx][3])}
                     else if(round==='r16'&&pairs){t1=localResults[pairs[idx][0]]||null;t2=localResults[pairs[idx][1]]||null}
+                    else if(round==='third'){
+                      var qfA=localResults.qf_0||null,qfB=localResults.qf_1||null
+                      var qfC=localResults.qf_2||null,qfD=localResults.qf_3||null
+                      var sf0Real=localResults.sf_0||null,sf1Real=localResults.sf_1||null
+                      t1=sf0Real?(sf0Real.n===(qfA&&qfA.n)?qfB:qfA):null
+                      t2=sf1Real?(sf1Real.n===(qfC&&qfC.n)?qfD:qfC):null
+                    }
                     else{t1=localResults[round==='qf'?'r16_'+(idx*2):round==='sf'?'qf_'+(idx*2):'sf_0']||null;t2=localResults[round==='qf'?'r16_'+(idx*2+1):round==='sf'?'qf_'+(idx*2+1):'sf_1']||null}
                     var n1=t1?t1.n:'Equipo 1'
                     var n2=t2?t2.n:'Equipo 2'
